@@ -15,13 +15,13 @@ pub enum TestStatus {
 
 /// A test instance that contains the test name and the test function that will be run.
 pub struct Test {
-    test_name: &'static str,
-    test_fn: &'static dyn Fn() -> TestStatus,
+    pub test_name: &'static str,
+    pub test_fn: &'static dyn Fn() -> TestStatus,
 }
 
 impl Test {
-    /// Run a test function, returning the name of the test and the result of it in a [TestResult].
-    pub(crate) fn run_test(self) -> TestResult {
+    /// Run a test function, returning the name of the test and the result of it in a [`TestResult`].
+    pub fn run_test(self) -> TestResult {
         TestResult {
             test_name: self.test_name,
             test_result: (self.test_fn)(),
@@ -52,15 +52,18 @@ impl Display for TestStatus {
 }
 
 /// The output method for logging test results.
+#[derive(Debug)]
 pub enum OutputStyle<'a> {
     Stdout,
     File(&'static str),
     Buffer(&'a mut Vec<u8>),
+    None,
 }
 
 /// A test configuration type that determines what features will be enabled on the tests.
+#[derive(Debug)]
 pub struct TestConfig<'a> {
-    output: OutputStyle<'a>,
+    pub output: OutputStyle<'a>,
 }
 
 impl<'a> TestConfig<'a> {
@@ -83,7 +86,7 @@ pub trait RunnableTestSet {
     fn run(cfg: TestConfig) -> Vec<TestResult>;
 }
 
-pub(crate) fn output_test_result<T>(stream: T, result: &TestResult, test_num: usize)
+pub fn output_test_result<T>(stream: T, result: &TestResult, test_num: usize)
 where
     T: Write,
 {
