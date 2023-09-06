@@ -4,29 +4,7 @@
 mod tests {
     use std::process::Command;
 
-    use crate::{init_tests, RunnableTestSet, Test, TestResult, TestStatus};
-
-    pub struct EchoTestSet {
-        pub tests: Vec<Test>,
-    }
-
-    impl EchoTestSet {
-        fn initialize() -> Self {
-            Self {
-                tests: init_tests!(echo_hello_world, echo_hello_earth),
-            }
-        }
-    }
-
-    impl RunnableTestSet for EchoTestSet {
-        fn run() -> Vec<TestResult> {
-            EchoTestSet::initialize()
-                .tests
-                .into_iter()
-                .map(Test::run_test)
-                .collect()
-        }
-    }
+    use crate::{init_test_suite, init_tests, RunnableTestSet, Test, TestResult, TestStatus};
 
     /// # TEST
     ///   - echo 'Hello, world!'
@@ -70,18 +48,17 @@ mod tests {
     }
 
     #[test]
-    fn run_all_echo_tests() {
+    fn echo_test_set() {
+        init_test_suite!(EchoTestSet, echo_hello_world, echo_hello_earth);
+
+        let output_buffer: &mut Vec<u8> = &mut Vec::new();
+        EchoTestSet::run(TestConfig::default().output(OutputStyle::Buffer(output_buffer)));
+
+        let output = String::from_utf8_lossy(output_buffer);
         assert_eq!(
-            EchoTestSet::run()
-                .into_iter()
-                .map(|res| res.test_result)
-                .collect::<Vec<TestStatus>>(),
-            vec![
-                TestStatus::Success,
-                TestStatus::Fail(String::from(
-                    "mismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'"
-                ))
-            ]
+            output,
+            "Test #1 (echo_hello_world): OK\nTest #2 (echo_hello_earth): FAIL\n\n\
+            \tmismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'\n\n"
         );
     }
 }

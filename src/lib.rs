@@ -1,5 +1,9 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    io::{BufWriter, Write},
+};
 
+pub mod macros;
 pub mod test_sets;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -17,7 +21,7 @@ pub struct Test {
 
 impl Test {
     /// Run a test function, returning the name of the test and the result of it in a [TestResult].
-    fn run_test(self) -> TestResult {
+    pub(crate) fn run_test(self) -> TestResult {
         TestResult {
             test_name: self.test_name,
             test_result: (self.test_fn)(),
@@ -47,20 +51,86 @@ impl Display for TestStatus {
     }
 }
 
-/// A test set that produces a list of test results.
-pub trait RunnableTestSet {
-    fn run() -> Vec<TestResult>;
+/// The output method for logging test results.
+pub enum OutputStyle<'a> {
+    Stdout,
+    File(&'static str),
+    Buffer(&'a mut Vec<u8>),
 }
 
-#[macro_export]
-macro_rules! init_tests {
-    ($($test:expr),*) => {{
-        let mut v: Vec<Test> = Vec::new();
+/// A test configuration type that determines what features will be enabled on the tests.
+pub struct TestConfig<'a> {
+    output: OutputStyle<'a>,
+}
 
-        $(let test_name: &'static str = stringify!($test);
-        let test_fn: &'static dyn Fn() -> TestStatus = &$test;
-        v.push(Test { test_name, test_fn });)*
+impl<'a> TestConfig<'a> {
+    pub fn output(mut self, output_style: OutputStyle<'a>) -> Self {
+        self.output = output_style;
+        self
+    }
+}
 
-        v
-    }};
+impl<'a> Default for TestConfig<'a> {
+    fn default() -> Self {
+        Self {
+            output: OutputStyle::Stdout,
+        }
+    }
+}
+
+/// A test set that produces a list of test results.
+pub trait RunnableTestSet {
+    fn run(cfg: TestConfig) -> Vec<TestResult>;
+}
+
+pub(crate) fn output_test_result<T>(stream: T, result: &TestResult, test_num: usize)
+where
+    T: Write,
+{
+    let fmt_output = match &result.test_result {
+        TestStatus::Success => format!("Test #{} ({}): OK\n", test_num, result.test_name),
+        TestStatus::Fail(err_msg) => format!(
+            "Test #{} ({}): FAIL\n\n\t{}\n\n",
+            test_num, result.test_name, err_msg
+        ),
+    };
+
+    let mut writer: BufWriter<T> = BufWriter::new(stream);
+    writer
+        .write_all(fmt_output.as_bytes())
+        .expect("stream could not be written to");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_test_output() {
+        let ok_test = TestResult {
+            test_name: "this_test_passes",
+            test_result: TestStatus::Success,
+        };
+
+        let fail_test = TestResult {
+            test_name: "this_test_fails",
+            test_result: TestStatus::Fail(format!("test failed after {}", ok_test.test_name)),
+        };
+
+        let mut ok_result_buffer: Vec<u8> = Vec::new();
+        let mut fail_result_buffer: Vec<u8> = Vec::new();
+
+        output_test_result(&mut ok_result_buffer, &ok_test, 1);
+        output_test_result(&mut fail_result_buffer, &fail_test, 2);
+
+        assert_eq!(
+            String::from_utf8_lossy(&ok_result_buffer),
+            "Test #1 (this_test_passes): OK\n"
+        );
+
+        assert_eq!(
+            String::from_utf8_lossy(&fail_result_buffer),
+            "Test #2 (this_test_fails): FAIL\n\n\ttest failed after this_test_passes\n\n"
+        );
+    }
 }
