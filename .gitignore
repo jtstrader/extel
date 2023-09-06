@@ -1,0 +1,3 @@
+# Library shouldn't have a .lock in remote
+Cargo.lock
+/target/

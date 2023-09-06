@@ -1,0 +1,5 @@
+[package]
+name = "extel"
+authors = ["Jacob Strader <11006561@live.mercer.edu>"]
+version = "0.1.0"
+edition = "2021"
