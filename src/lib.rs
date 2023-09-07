@@ -91,9 +91,9 @@ where
     T: Write,
 {
     let fmt_output = match &result.test_result {
-        TestStatus::Success => format!("Test #{} ({}): OK\n", test_num, result.test_name),
+        TestStatus::Success => format!("\tTest #{} ({}): OK\n", test_num, result.test_name),
         TestStatus::Fail(err_msg) => format!(
-            "Test #{} ({}): FAIL\n\n\t{}\n\n",
+            "\tTest #{} ({}): FAIL\n\n\t\t{}\n\n",
             test_num, result.test_name, err_msg
         ),
     };
@@ -128,12 +128,12 @@ mod tests {
 
         assert_eq!(
             String::from_utf8_lossy(&ok_result_buffer),
-            "Test #1 (this_test_passes): OK\n"
+            "\tTest #1 (this_test_passes): OK\n"
         );
 
         assert_eq!(
             String::from_utf8_lossy(&fail_result_buffer),
-            "Test #2 (this_test_fails): FAIL\n\n\ttest failed after this_test_passes\n\n"
+            "\tTest #2 (this_test_fails): FAIL\n\n\t\ttest failed after this_test_passes\n\n"
         );
     }
 }

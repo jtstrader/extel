@@ -4,7 +4,7 @@
 mod tests {
     use std::process::Command;
 
-    use crate::{init_test_suite, init_tests, TestStatus};
+    use crate::{init_test_suite, OutputStyle, RunnableTestSet, TestConfig, TestStatus};
 
     /// # TEST
     ///   - echo 'Hello, world!'
@@ -67,16 +67,16 @@ mod tests {
 
     #[test]
     fn echo_test_set() {
-        init_test_suite!(EchoTestSet, echo_hello_world, echo_hello_earth);
-
         let output_buffer: &mut Vec<u8> = &mut Vec::new();
+
+        init_test_suite!(EchoTestSet, echo_hello_world, echo_hello_earth);
         EchoTestSet::run(TestConfig::default().output(OutputStyle::Buffer(output_buffer)));
 
         let output = String::from_utf8_lossy(output_buffer);
         assert_eq!(
             output,
-            "Test #1 (echo_hello_world): OK\nTest #2 (echo_hello_earth): FAIL\n\n\
-            \tmismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'\n\n"
+            "[extel::test_sets::echo::tests::echo_test_set::EchoTestSet]\n\tTest #1 (echo_hello_world): OK\n\
+            \tTest #2 (echo_hello_earth): FAIL\n\n\t\tmismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'\n\n"
         );
     }
 

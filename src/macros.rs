@@ -4,11 +4,11 @@
 macro_rules! init_tests {
     ($($test:expr),*) => {{
         #[allow(unused_mut)]
-        let mut v: Vec<Test> = Vec::new();
+        let mut v: Vec<$crate::Test> = Vec::new();
 
         $(let test_name: &'static str = stringify!($test);
         let test_fn: &'static dyn Fn() -> TestStatus = &$test;
-        v.push(Test { test_name, test_fn });)*
+        v.push($crate::Test { test_name, test_fn });)*
 
         v
     }};
@@ -25,7 +25,7 @@ macro_rules! init_tests {
 /// # Example
 /// ```rust
 /// use std::process::Command;
-/// use extel::{init_tests, init_test_suite, TestStatus};
+/// use extel::{init_test_suite, TestStatus, TestConfig, RunnableTestSet};
 ///
 /// /// Run end-to-end test of application.
 /// fn ls_no_arg_e2e() -> TestStatus {
@@ -56,24 +56,26 @@ macro_rules! init_test_suite {
     };
 
     ($test_suite:ident, $($test_name:expr),*) => {
-        use $crate::{RunnableTestSet, Test, TestConfig, TestResult, OutputStyle, output_test_result};
-
         pub struct $test_suite {
-            tests: Vec<Test>,
+            tests: Vec<$crate::Test>,
         }
 
-        impl RunnableTestSet for $test_suite {
-            fn run(cfg: TestConfig) -> Vec<TestResult> {
-                let test_set = $test_suite { tests: init_tests!($($test_name),*) };
+        impl $crate::RunnableTestSet for $test_suite {
+            fn run(cfg: $crate::TestConfig) -> Vec<$crate::TestResult> {
+                let test_set = $test_suite { tests: $crate::init_tests!($($test_name),*) };
                 let mut writer: Option<Box<dyn ::std::io::Write>> = match cfg.output {
-                    OutputStyle::Stdout => Some(Box::new(::std::io::stdout())),
-                    OutputStyle::File(file_name) => {
+                    $crate::OutputStyle::Stdout => Some(Box::new(::std::io::stdout())),
+                    $crate::OutputStyle::File(file_name) => {
                         let file_handle = ::std::fs::File::create(file_name).expect("could not open output file");
                         Some(Box::new(file_handle))
                     },
-                    OutputStyle::Buffer(buffer) => Some(Box::new(buffer)),
-                    OutputStyle::None => None
+                    $crate::OutputStyle::Buffer(buffer) => Some(Box::new(buffer)),
+                    $crate::OutputStyle::None => None
                 };
+
+                if let Some(w) = writer.as_mut() {
+                    write!(w, "[{}]\n", std::any::type_name::<$test_suite>()).expect("buffer could not be written to");
+                }
 
                 // Begin running tests and logging to the desired writer
                 test_set
@@ -84,7 +86,7 @@ macro_rules! init_test_suite {
                         let test_result = test.run_test();
 
                         if let Some(w) = writer.as_mut() {
-                            output_test_result(w, &test_result, test_id + 1);
+                           $crate::output_test_result(w, &test_result, test_id + 1);
                         }
 
                         test_result
@@ -97,7 +99,7 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
-    use crate::TestStatus;
+    use crate::{OutputStyle, RunnableTestSet, TestConfig, TestStatus};
 
     /// # TEST
     ///   - Return a constant success!
@@ -123,7 +125,7 @@ mod tests {
 
         assert_eq!(
             output,
-            *"Test #1 (always_succeed): OK\nTest #2 (always_fail): FAIL\n\n\tthis test failed?\n\n"
+            *"[extel::macros::tests::init_test_suite_basic::BasicTestSet]\n\tTest #1 (always_succeed): OK\n\tTest #2 (always_fail): FAIL\n\n\t\tthis test failed?\n\n"
         );
     }
 }
