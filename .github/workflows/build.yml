@@ -1,0 +1,33 @@
+on: push
+name: Build extel 
+jobs:
+  build_extel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Build extel
+        working-directory: ./extel
+        run: cargo build --release --all-features
+  build_extel_parameterized:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Build extel_parameterized
+        working-directory: ./extel_parameterized
+        run: cargo build --release --all-features
