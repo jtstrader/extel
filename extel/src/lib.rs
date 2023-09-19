@@ -6,6 +6,9 @@ use std::{
 pub mod macros;
 pub mod test_sets;
 
+#[cfg(feature = "parameterized")]
+pub use extel_parameterized::parameters;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// Represents a test's success/fail status post-run.
 pub enum TestStatus {

@@ -28,7 +28,7 @@ macro_rules! init_tests {
 /// use extel::{init_test_suite, TestStatus, TestConfig, RunnableTestSet};
 ///
 /// /// Run end-to-end test of application.
-/// fn ls_no_arg_e2e() -> TestStatus {
+/// fn echo_no_arg_e2e() -> TestStatus {
 ///     match Command::new("echo").status() {
 ///         Ok(exit_code) => {
 ///             let code: i32 = exit_code.code().unwrap_or(-1);
@@ -45,9 +45,9 @@ macro_rules! init_tests {
 /// }
 ///
 /// // Outputs:
-/// //  Test #1 (ls_no_arg_e2e): OK
-/// init_test_suite!(LsTestSuite, ls_no_arg_e2e);
-/// LsTestSuite::run(TestConfig::default());
+/// //  Test #1 (echo_no_arg_e2e): OK
+/// init_test_suite!(EchoTestSuite, echo_no_arg_e2e);
+/// EchoTestSuite::run(TestConfig::default());
 /// ```
 #[macro_export]
 macro_rules! init_test_suite {

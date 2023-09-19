@@ -3,3 +3,9 @@ name = "extel"
 authors = ["Jacob Strader <11006561@live.mercer.edu>"]
 version = "0.1.0"
 edition = "2021"
+
+[features]
+parameterized = []
+
+[dependencies]
+extel_parameterized = { path = "../extel_parameterized" }
