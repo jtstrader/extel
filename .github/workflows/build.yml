@@ -1,5 +1,5 @@
 on: push
-name: Build extel 
+name: Build extel
 jobs:
   build_extel:
     runs-on: ubuntu-latest
@@ -16,6 +16,11 @@ jobs:
       - name: Build extel
         working-directory: ./extel
         run: cargo build --release --all-features
+
+      - name: Test extel
+        working-directory: ./extel
+        run: cargo test
+
   build_extel_parameterized:
     runs-on: ubuntu-latest
     steps:
@@ -31,3 +36,7 @@ jobs:
       - name: Build extel_parameterized
         working-directory: ./extel_parameterized
         run: cargo build --release --all-features
+
+      - name: Test extel_parameterized
+        working-directory: ./extel_parameterized
+        run: cargo test
