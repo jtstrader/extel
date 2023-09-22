@@ -65,6 +65,83 @@ macro_rules! fail {
     ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt)))}
 }
 
+/// Constructs a [`Command`](std::process::Command) as if receiving the command directly from the
+/// CLI. Arguments wrapped in single or double quotes are treated as single arguments, allowing
+/// multiple tokens to be passed as a single argument to a command.
+///
+/// # Example
+/// ```rust
+/// use extel::cmd;
+///
+/// const EXPECTED: &str = "hello world";
+///
+/// let cmd_output = cmd!("echo -n \"hello world\"").output().unwrap();
+/// let cmd_output_fmt = cmd!("echo -n \"{}\"", EXPECTED).output().unwrap();
+///
+/// assert_eq!(
+///     String::from_utf8_lossy(&cmd_output.stdout),
+///     String::from_utf8_lossy(&cmd_output_fmt.stdout)
+/// )
+/// ```
+#[macro_export]
+macro_rules! cmd {
+    ($cmd_str:expr) => {{
+        // First, extract tokens by spliting them by spaces, but keep
+        // together tokens that are wrapped in single/double quotes.
+        let mut cmd_str_tokens = $cmd_str.split(' ');
+        let command = cmd_str_tokens.next().expect("no command was provided");
+        let mut args = cmd_str_tokens.map(String::from);
+        let mut final_args: Vec<String> = Vec::new();
+
+        while let Some(token) = args.next() {
+            // Get a token, check if quotes are present. If so, begin iterating
+            // until a closing quote is found. If a closing quote is not found,
+            // panic.
+            let tok_chars = token.chars().collect::<Vec<_>>();
+            let first_char = tok_chars[0];
+            if ['"', '\''].contains(&first_char) {
+                // Verify that the last token for this string is not also a quote.
+                if *tok_chars.last().unwrap() == first_char {
+                    final_args.push(tok_chars[1..tok_chars.len()-1].into_iter().collect());
+                    break;
+                }
+
+                // Iterate until the next is found.
+                let mut quoted_arg = vec![token.chars().skip(1).collect::<String>()];
+
+                loop {
+                    let Some(token) = args.next() else {
+                        break;
+                    };
+
+                    // Check if the last char is a matching quote
+                    let tok_chars = token.chars().collect::<Vec<_>>();
+                    if *tok_chars.last().unwrap() == first_char {
+                        quoted_arg.push(
+                            // Assumes UTF-8
+                            tok_chars[0..tok_chars.len()-1].into_iter().collect()
+                        );
+                    }
+                }
+                final_args.extend(quoted_arg);
+            } else {
+                final_args.push(token);
+            }
+        }
+
+        let mut command = ::std::process::Command::new(command);
+        if !final_args.is_empty() {
+            command.args(final_args);
+        }
+        command
+    }};
+
+    ($cmd_str:expr, $($arg:expr),*) => {{
+        let fmt = format!($cmd_str, $($arg),*);
+        cmd!(fmt)
+    }};
+}
+
 /// The test suite initializer that constructs test suits based on the provided name (first
 /// parameter) and the provided functions (the comma-delimited list afterwards). Every function
 /// that is provided is expected *only* to return type [`ExtelResult`](crate::ExtelResult), and
@@ -107,6 +184,7 @@ macro_rules! init_test_suite {
     };
 
     ($test_suite:ident, $($test_name:expr),*) => {
+        #[allow(non_camel_case_types)]
         pub struct $test_suite {
             tests: Vec<$crate::Test>,
         }
@@ -150,7 +228,7 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ExtelResult, OutputStyle, RunnableTestSet, TestConfig, TestStatus};
+    use crate::{ExtelResult, OutputStyle, RunnableTestSet, TestConfig};
 
     /// # TEST
     ///   - Return a constant success!
@@ -177,6 +255,74 @@ mod tests {
         assert_eq!(
             output,
             *"[extel::macros::tests::init_test_suite_basic::BasicTestSet]\n\tTest #1 (always_succeed): OK\n\tTest #2 (always_fail): FAIL\n\n\t\tthis test failed?\n\n"
+        );
+    }
+
+    #[test]
+    fn test_cmd() {
+        fn __test_cmd() -> ExtelResult {
+            let output = cmd!("echo -n \"hello world\"")
+                .output()
+                .expect("could not execute command");
+            let string_output =
+                String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
+
+            if string_output == *"hello world" {
+                pass!()
+            } else {
+                fail!(
+                    "invalid result, expected 'hello world', got '{}'",
+                    string_output
+                )
+            }
+        }
+
+        init_test_suite!(__test_cmd_suite, __test_cmd);
+        let mut output_buffer: Vec<u8> = Vec::new();
+
+        __test_cmd_suite::run(
+            TestConfig::default().output(OutputStyle::Buffer(&mut output_buffer)),
+        );
+
+        let output_result = String::from_utf8_lossy(&output_buffer);
+        assert_eq!(
+            output_result,
+            "[extel::macros::tests::test_cmd::__test_cmd_suite]\n\tTest #1 (__test_cmd): OK\n"
+        );
+    }
+
+    #[test]
+    fn test_cmd_fmt_arg() {
+        const EXPECTED: &str = "hello world";
+        fn __test_cmd() -> ExtelResult {
+            let output = cmd!("echo -n \"{}\"", EXPECTED)
+                .output()
+                .expect("could not execute command");
+            let string_output =
+                String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
+
+            if string_output == *EXPECTED {
+                pass!()
+            } else {
+                fail!(
+                    "invalid result, expected '{}', got '{}'",
+                    EXPECTED,
+                    string_output
+                )
+            }
+        }
+
+        init_test_suite!(__test_cmd_suite, __test_cmd);
+        let mut output_buffer: Vec<u8> = Vec::new();
+
+        __test_cmd_suite::run(
+            TestConfig::default().output(OutputStyle::Buffer(&mut output_buffer)),
+        );
+
+        let output_result = String::from_utf8_lossy(&output_buffer);
+        assert_eq!(
+            output_result,
+            "[extel::macros::tests::test_cmd_fmt_arg::__test_cmd_suite]\n\tTest #1 (__test_cmd): OK\n"
         );
     }
 }

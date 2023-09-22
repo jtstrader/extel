@@ -2,10 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
-
     use crate::{
-        fail, init_test_suite, pass, ExtelResult, OutputStyle, RunnableTestSet, TestConfig,
+        cmd, fail, init_test_suite, pass, ExtelResult, OutputStyle, RunnableTestSet, TestConfig,
         TestResultType, TestStatus,
     };
 
@@ -14,8 +12,7 @@ mod tests {
     fn echo_hello_world() -> ExtelResult {
         let expected = String::from("Hello, world!");
 
-        let output = Command::new("echo")
-            .args(["-n", &expected])
+        let output = cmd!("echo -n \"{}\"", expected)
             .output()
             .expect("could not execute echo");
         let string_output = String::from_utf8(output.stdout).expect("could not parse stdout");
@@ -35,8 +32,7 @@ mod tests {
     fn echo_hello_earth() -> ExtelResult {
         let wrong_msg = String::from("Hello, earth!");
 
-        let output = Command::new("echo")
-            .args(["-n", &wrong_msg])
+        let output = cmd!("echo -n \"{}\"", wrong_msg)
             .output()
             .expect("could not execute echo");
         let string_output = String::from_utf8(output.stdout).expect("could not parse stdout");
@@ -55,7 +51,7 @@ mod tests {
     /// # TEST
     ///   - echo something, look for a success code
     fn echo_anything() -> ExtelResult {
-        match Command::new("echo").arg("-n").status() {
+        match cmd!("echo -n").status() {
             Ok(exit_code) => exit_code.code().map_or_else(
                 || fail!("no exit code found"),
                 |code| {
