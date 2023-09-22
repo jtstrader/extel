@@ -12,19 +12,42 @@ in the initializer macro.
 
 ```rs
 /// # TEST
-///   - Return a constant success!
-fn always_succeed() -> TestStatus {
-    TestStatus::Success
+/// Return a constant success!
+fn always_succeed() -> ExtelResult {
+    pass!()
 }
 
 /// # TEST
-///   - Return a constant failure... :(
+/// Return a constant failure... :(
 fn always_fail() -> TestStatus {
-    TestStatus::Fail("this test failed?".to_string())
+    fail!("this test failed?")
 }
 
 fn main() {
     init_test_suite!(BasicTestSet, always_succeed, always_fail);
     BasicTestSet::run(TestConfig::default().output(OutputStyle::Stdout));
+}
+```
+
+# Parameterized Testing
+As of now Extel supports parameterized testing for single parameter functions. If you want to pass in multiple parameters,
+wrap the input in a tuple or struct to test. You must add Extel with the `parameterized` feature enable.
+
+```rs
+/// # TEST
+/// Check if the number is positive.
+#[parameters(5, 10, -1)]
+fn positive_num(n: usize) -> ExtelResult {
+    if n > 0 {
+        pass!()
+    } else {
+        fail!("{} is not positive", n)
+    }
+}
+
+
+fn main() {
+    init_test_suite!(ParameterizedTestSet, positive_num);
+    ParameterizedTestSet::run(TestConfig::default().output(OutputStyle::Stdout));
 }
 ```
