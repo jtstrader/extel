@@ -3,37 +3,6 @@ extern crate proc_macro;
 use proc_macro::{Ident, TokenStream, TokenTree};
 
 #[proc_macro_attribute]
-/// Convert a *single argument function* into a parameterized function. The expected function
-/// signature is a single argument function (can be any type) that returns an
-/// [`ExtelResult`](extel::ExtelResult). If this attribute is attached to a function, the function's
-/// implementation will be changed to return a `Vec<ExtelResult>` instead, and will take no
-/// parameters.
-///
-/// While technically possible, this macro is not intended to be used to run tests
-/// manually. This macro is specifically for the purpose of helping the [test
-/// initializer](extel::init_test_suite) prepare parameterized tests.
-///
-/// # Example
-/// ```rust
-/// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
-/// use extel_parameterized::parameters;
-///
-/// #[parameters(2, 4)]
-/// fn less_than_3(x: i32) -> ExtelResult {
-///     match x < 3 {
-///         true => pass!(),
-///         false => fail!("{} >= 3", x),
-///     }
-/// }
-///
-/// assert_eq!(
-///     less_than_3().get_test_result(),
-///     TestResultType::Parameterized(vec![
-///         TestStatus::Success,
-///         TestStatus::Fail(String::from("4 >= 3"))
-///     ])
-/// );
-/// ```
 pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
     let mut tokens: Vec<TokenTree> = function.clone().into_iter().collect();
 

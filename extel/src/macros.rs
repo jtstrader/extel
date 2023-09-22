@@ -14,6 +14,22 @@ macro_rules! init_tests {
     }};
 }
 
+/// A macro to create a passing ExtelResult. Under the hood this is represented as a
+/// [`TestStatus`](crate::TestStatus) wrapped as a `Single` variant on
+/// [`TestResultType`](crate::TestResultType).
+///
+/// # Example
+/// ```rust
+/// use extel::{pass, ExtelResult, TestResultType, TestStatus};
+/// fn always_pass() -> ExtelResult {
+///     pass!()
+/// }
+///
+/// assert_eq!(
+///     always_pass().get_test_result(),
+///     TestResultType::Single(TestStatus::Success)
+/// )
+/// ```
 #[macro_export]
 macro_rules! pass {
     () => {
@@ -21,6 +37,25 @@ macro_rules! pass {
     };
 }
 
+/// A macro to create a failing ExtelResult. Under the hood this is represented as a
+/// [`TestStatus`](crate::TestStatus) wrapped as a `Single` variant on
+/// [`TestResultType`](crate::TestResultType).
+///
+/// # Example
+/// ```rust
+/// use extel::{fail, ExtelResult, TestResultType, TestStatus};
+/// fn always_fail() -> ExtelResult {
+///     let error_msg = "this is an error message!";
+///     fail!("This test fails with this error {}", error_msg)
+/// }
+///
+/// assert_eq!(
+///     always_fail().get_test_result(),
+///     TestResultType::Single(
+///         TestStatus::Fail(format!("This test fails with this error this is an error message!"))
+///     )
+/// )
+/// ```
 #[macro_export]
 macro_rules! fail {
     ($fmt:expr, $($arg:expr),*) => {
@@ -32,7 +67,7 @@ macro_rules! fail {
 
 /// The test suite initializer that constructs test suits based on the provided name (first
 /// parameter) and the provided functions (the comma-delimited list afterwards). Every function
-/// that is provided is expected *only* to return type [`TestStatus`](crate::TestStatus), and
+/// that is provided is expected *only* to return type [`ExtelResult`](crate::ExtelResult), and
 /// should have *no* parameters.
 ///
 /// These tests are stateless in nature, relying on their environment and hard-coded CLI args to

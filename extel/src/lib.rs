@@ -7,8 +7,55 @@ pub mod macros;
 pub mod test_sets;
 
 #[cfg(feature = "parameterized")]
+/// Convert a *single argument function* into a parameterized function. The expected function
+/// signature is a single argument function (can be any type) that returns an
+/// [`ExtelResult`](crate::ExtelResult).
+///
+/// While technically possible, this macro is not intended to be used to run tests
+/// manually. This macro is specifically for the purpose of helping the [test
+/// initializer](crate::init_test_suite) prepare parameterized tests.
+///
+/// # Example
+/// ```rust
+/// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
+/// use extel_parameterized::parameters;
+///
+/// #[parameters(2, 4)]
+/// fn less_than_3(x: i32) -> ExtelResult {
+///     match x < 3 {
+///         true => pass!(),
+///         false => fail!("{} >= 3", x),
+///     }
+/// }
+///
+/// assert_eq!(
+///     less_than_3().get_test_result(),
+///     TestResultType::Parameterized(vec![
+///         TestStatus::Success,
+///         TestStatus::Fail(String::from("4 >= 3"))
+///     ])
+/// );
+/// ```
 pub use extel_parameterized::parameters;
 
+/// The expected return type of extel test functions. This type is a generic type to wrap around
+/// both standard (single) and parameterized tests. The easiest way to create these results is to
+/// use the [`pass`] and [`fail`] macros.
+///
+/// To get the underlying test result variant, use the
+/// [`get_test_result`](GenericTestResult::get_test_result) function.
+///
+/// # Example
+/// ```rust
+/// use extel::{pass, fail, ExtelResult, TestStatus, TestResultType};
+///
+/// fn always_succeed() -> ExtelResult {
+///     pass!()
+/// }
+///
+/// let res = always_succeed().get_test_result();
+/// assert_eq!(res, TestResultType::Single(TestStatus::Success));
+/// ```
 pub type ExtelResult = Box<dyn crate::GenericTestResult>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -19,6 +66,9 @@ pub enum TestStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// A test result variant that helps distinguish between standard, or single, tests and
+/// parameterized tests. Both the `Single` and `Parameterized` variants contain one or more
+/// [`TestStatus`] structs.
 pub enum TestResultType {
     Single(TestStatus),
     Parameterized(Vec<TestStatus>),
@@ -32,7 +82,14 @@ pub trait GenericTestResult {
 
 impl TryInto<TestStatus> for ExtelResult {
     type Error = &'static str;
+
+    /// Try to convert an ExtelResult into a single test result. Will return an error if the result
+    /// passed in is a parameterized result.
     fn try_into(self) -> Result<TestStatus, Self::Error> {
+        // Note: internally this may seem purposeless, but this is for ease of use! No test written
+        // by the user can feasibly return a TestResultType::Single unless writing a parameterized
+        // test. In the end this just helps organize and cleanup some internal code that may need
+        // to extract an ExtelResult into a specific variant.
         match self.get_test_result() {
             TestResultType::Single(result) => Ok(result),
             _ => Err("cannot call `into` on parameterized result"),
@@ -52,6 +109,7 @@ impl GenericTestResult for Vec<TestStatus> {
     }
 }
 
+/// A trait for basic, parameterless function types that return [`ExtelResult`].
 pub trait TestFunction {
     fn run_test_fn(&self) -> TestResultType;
 }
