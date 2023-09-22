@@ -4,11 +4,14 @@
 mod tests {
     use std::process::Command;
 
-    use crate::{init_test_suite, OutputStyle, RunnableTestSet, TestConfig, TestStatus};
+    use crate::{
+        fail, init_test_suite, pass, ExtelResult, OutputStyle, RunnableTestSet, TestConfig,
+        TestResultType, TestStatus,
+    };
 
     /// # TEST
     ///   - echo 'Hello, world!'
-    fn echo_hello_world() -> TestStatus {
+    fn echo_hello_world() -> ExtelResult {
         let expected = String::from("Hello, world!");
 
         let output = Command::new("echo")
@@ -18,17 +21,18 @@ mod tests {
         let string_output = String::from_utf8(output.stdout).expect("could not parse stdout");
 
         match string_output == expected {
-            true => TestStatus::Success,
-            false => TestStatus::Fail(format!(
+            true => pass!(),
+            false => fail!(
                 "mismatched output from echo: expected '{}', got '{}'",
-                expected, string_output
-            )),
+                expected,
+                string_output
+            ),
         }
     }
 
     /// # TEST (SHOULD FAIL)
     ///   - echo 'Hello, earth!'
-    fn echo_hello_earth() -> TestStatus {
+    fn echo_hello_earth() -> ExtelResult {
         let wrong_msg = String::from("Hello, earth!");
 
         let output = Command::new("echo")
@@ -39,29 +43,30 @@ mod tests {
 
         let expected = String::from("Hello, world!");
         match string_output == expected {
-            true => TestStatus::Success,
-            false => TestStatus::Fail(format!(
+            true => pass!(),
+            false => fail!(
                 "mismatched output from echo: expected '{}', got '{}'",
-                expected, string_output
-            )),
+                expected,
+                string_output
+            ),
         }
     }
 
     /// # TEST
     ///   - echo something, look for a success code
-    fn echo_anything() -> TestStatus {
+    fn echo_anything() -> ExtelResult {
         match Command::new("echo").arg("-n").status() {
             Ok(exit_code) => exit_code.code().map_or_else(
-                || TestStatus::Fail(format!("no exit code found")),
+                || fail!("no exit code found"),
                 |code| {
                     if code == 0 {
-                        TestStatus::Success
+                        pass!()
                     } else {
-                        TestStatus::Fail(format!("failed with exit code: {}", code))
+                        fail!("failed with exit code: {}", code)
                     }
                 },
             ),
-            Err(e) => TestStatus::Fail(format!("could not execute with error: {}", e)),
+            Err(e) => fail!("could not execute with error: {}", e),
         }
     }
 
@@ -93,7 +98,7 @@ mod tests {
         assert!(
             EchoTestSet::run(TestConfig::default().output(OutputStyle::None))
                 .into_iter()
-                .all(|test| test.test_result == TestStatus::Success)
+                .all(|test| test.test_result == TestResultType::Single(TestStatus::Success))
         );
     }
 }

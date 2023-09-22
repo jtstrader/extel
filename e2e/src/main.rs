@@ -1,17 +1,18 @@
-use extel::{init_test_suite, parameters, RunnableTestSet, TestConfig, TestStatus};
+use extel::{fail, init_test_suite, parameters, pass, ExtelResult, RunnableTestSet, TestConfig};
 
 fn main() {
-    init_test_suite!(MathTestSuite, calculate);
+    init_test_suite!(MathTestSuite, calculate, perfect_sqrt);
+
     MathTestSuite::run(TestConfig::default());
 }
 
-#[parameters(4_f64, 16_f64, 30_f64)]
-fn perfect_sqrt(x: f64) -> TestStatus {
+#[parameters(4_f64, 16_f64, 30_f64, 32_f64)]
+fn perfect_sqrt(x: f64) -> ExtelResult {
     let sqrt = x.sqrt();
     if sqrt == sqrt.floor() {
-        TestStatus::Success
+        pass!()
     } else {
-        TestStatus::Fail(format!("{} is not a perfect square", x))
+        fail!("{} is not a perfect square", x)
     }
 }
 
@@ -19,11 +20,11 @@ fn __calculate(x: f64, y: f64) -> f64 {
     (x + y) / y
 }
 
-fn calculate() -> TestStatus {
+fn calculate() -> ExtelResult {
     let result = __calculate(10_f64, 2_f64);
     if result > 0_f64 {
-        TestStatus::Success
+        pass!()
     } else {
-        TestStatus::Fail(format!("value of __calculate(10, 2) <= 0: got {}", result))
+        fail!("value of __calculate(10, 2) <= 0: got {}", result)
     }
 }

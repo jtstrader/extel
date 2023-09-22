@@ -4,9 +4,9 @@ use proc_macro::{Ident, TokenStream, TokenTree};
 
 #[proc_macro_attribute]
 /// Convert a *single argument function* into a parameterized function. The expected function
-/// signature is a single argument function (can be any type) that returns a
-/// [`TestStatus`](extel::TestStatus). If this attribute is attached to a function, the function's
-/// implementation will be changed to return a `Vec<TestStatus>` instead, and will take no
+/// signature is a single argument function (can be any type) that returns an
+/// [`ExtelResult`](extel::ExtelResult). If this attribute is attached to a function, the function's
+/// implementation will be changed to return a `Vec<ExtelResult>` instead, and will take no
 /// parameters.
 ///
 /// While technically possible, this macro is not intended to be used to run tests
@@ -15,23 +15,23 @@ use proc_macro::{Ident, TokenStream, TokenTree};
 ///
 /// # Example
 /// ```rust
-/// use extel::TestStatus;
+/// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
 /// use extel_parameterized::parameters;
 ///
 /// #[parameters(2, 4)]
-/// fn less_than_3(x: i32) -> TestStatus {
+/// fn less_than_3(x: i32) -> ExtelResult {
 ///     match x < 3 {
-///         true => TestStatus::Success,
-///         false => TestStatus::Fail(format!("{} >= 3", x)),
+///         true => pass!(),
+///         false => fail!("{} >= 3", x),
 ///     }
 /// }
 ///
 /// assert_eq!(
-///     less_than_3(),
-///     vec![
+///     less_than_3().get_test_result(),
+///     TestResultType::Parameterized(vec![
 ///         TestStatus::Success,
 ///         TestStatus::Fail(String::from("4 >= 3"))
-///     ]
+///     ])
 /// );
 /// ```
 pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
@@ -43,20 +43,30 @@ pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
 
     // Get function name and parameter(s)
     let (func_name, span) = (tokens[1].to_string(), tokens[1].span());
-    tokens[1] = TokenTree::Ident(Ident::new(&format!("__{}", func_name), span));
+    let attr_list = attr.to_string();
+    let inner_func_name = format!("__{}", func_name);
+
+    tokens[1] = TokenTree::Ident(Ident::new(&inner_func_name, span));
 
     // Build test runner
-    let test_runner = format!(
-        "[{}].into_iter().map(|input| __{}(input)).collect::<Vec<TestStatus>>()",
-        attr, func_name
+    let test_runner_tokens = format!(
+        "let extel_single_results = [{attr_list}].into_iter().map({inner_func_name}).collect::<Vec<extel::ExtelResult>>();\
+        Box::new(
+            extel_single_results
+                .into_iter()
+                .map(TryInto::<extel::TestStatus>::try_into)
+                .flatten()
+                .collect::<Vec<_>>(),
+        )"
+
     );
 
     // Create wrapper around the input stream
     let final_func = format!(
-        "fn {}() -> Vec<TestStatus> {{ {} {} }}",
+        "fn {}() -> ExtelResult {{ {} {} }}",
         func_name,
         tokens.into_iter().collect::<TokenStream>(),
-        test_runner,
+        test_runner_tokens,
     );
 
     final_func.parse().unwrap()

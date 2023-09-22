@@ -7,11 +7,27 @@ macro_rules! init_tests {
         let mut v: Vec<$crate::Test> = Vec::new();
 
         $(let test_name: &'static str = stringify!($test);
-        let test_fn: &'static dyn Fn() -> TestStatus = &$test;
+        let test_fn: &'static dyn $crate::TestFunction = &($test as fn() -> $crate::ExtelResult);
         v.push($crate::Test { test_name, test_fn });)*
 
         v
     }};
+}
+
+#[macro_export]
+macro_rules! pass {
+    () => {
+        Box::new($crate::TestStatus::Success)
+    };
+}
+
+#[macro_export]
+macro_rules! fail {
+    ($fmt:expr, $($arg:expr),*) => {
+        Box::new($crate::TestStatus::Fail(format!($fmt, $($arg),*)))
+    };
+
+    ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt)))}
 }
 
 /// The test suite initializer that constructs test suits based on the provided name (first
@@ -25,21 +41,21 @@ macro_rules! init_tests {
 /// # Example
 /// ```rust
 /// use std::process::Command;
-/// use extel::{init_test_suite, TestStatus, TestConfig, RunnableTestSet};
+/// use extel::{fail, init_test_suite, pass, ExtelResult, TestConfig, RunnableTestSet};
 ///
 /// /// Run end-to-end test of application.
-/// fn echo_no_arg_e2e() -> TestStatus {
+/// fn echo_no_arg_e2e() -> ExtelResult {
 ///     match Command::new("echo").status() {
 ///         Ok(exit_code) => {
 ///             let code: i32 = exit_code.code().unwrap_or(-1);
 ///             if code == 0 {
-///                 TestStatus::Success
+///                 pass!()
 ///             } else {
-///                 TestStatus::Fail(format!("failed with exit code {}", code))
+///                 fail!("failed with exit code {}", code)
 ///             }
 ///         },
 ///         Err(msg) => {
-///             TestStatus::Fail(format!("failed to execute with error: {}", msg))
+///             fail!("failed to execute with error: {}", msg)
 ///         }
 ///     }
 /// }
@@ -99,18 +115,18 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
-    use crate::{OutputStyle, RunnableTestSet, TestConfig, TestStatus};
+    use crate::{ExtelResult, OutputStyle, RunnableTestSet, TestConfig, TestStatus};
 
     /// # TEST
     ///   - Return a constant success!
-    fn always_succeed() -> TestStatus {
-        TestStatus::Success
+    fn always_succeed() -> ExtelResult {
+        pass!()
     }
 
     /// # TEST
     ///   - Return a constant failure... :(
-    fn always_fail() -> TestStatus {
-        TestStatus::Fail("this test failed?".to_string())
+    fn always_fail() -> ExtelResult {
+        fail!("this test failed?")
     }
 
     #[test]

@@ -9,6 +9,8 @@ pub mod test_sets;
 #[cfg(feature = "parameterized")]
 pub use extel_parameterized::parameters;
 
+pub type ExtelResult = Box<dyn crate::GenericTestResult>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// Represents a test's success/fail status post-run.
 pub enum TestStatus {
@@ -16,10 +18,54 @@ pub enum TestStatus {
     Fail(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum TestResultType {
+    Single(TestStatus),
+    Parameterized(Vec<TestStatus>),
+}
+
+/// Represents a generic test result. The test result can be extracted into a [`TestResultType`] to
+/// determine if the result came from a parameterized or single test.
+pub trait GenericTestResult {
+    fn get_test_result(&self) -> TestResultType;
+}
+
+impl TryInto<TestStatus> for ExtelResult {
+    type Error = &'static str;
+    fn try_into(self) -> Result<TestStatus, Self::Error> {
+        match self.get_test_result() {
+            TestResultType::Single(result) => Ok(result),
+            _ => Err("cannot call `into` on parameterized result"),
+        }
+    }
+}
+
+impl GenericTestResult for TestStatus {
+    fn get_test_result(&self) -> TestResultType {
+        TestResultType::Single(self.clone())
+    }
+}
+
+impl GenericTestResult for Vec<TestStatus> {
+    fn get_test_result(&self) -> TestResultType {
+        TestResultType::Parameterized(self.clone())
+    }
+}
+
+pub trait TestFunction {
+    fn run_test_fn(&self) -> TestResultType;
+}
+
+impl TestFunction for fn() -> ExtelResult {
+    fn run_test_fn(&self) -> TestResultType {
+        self().get_test_result()
+    }
+}
+
 /// A test instance that contains the test name and the test function that will be run.
 pub struct Test {
     pub test_name: &'static str,
-    pub test_fn: &'static dyn Fn() -> TestStatus,
+    pub test_fn: &'static dyn TestFunction,
 }
 
 impl Test {
@@ -27,7 +73,7 @@ impl Test {
     pub fn run_test(self) -> TestResult {
         TestResult {
             test_name: self.test_name,
-            test_result: (self.test_fn)(),
+            test_result: (self.test_fn).run_test_fn(),
         }
     }
 }
@@ -38,7 +84,7 @@ impl Test {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TestResult {
     pub test_name: &'static str,
-    pub test_result: TestStatus,
+    pub test_result: TestResultType,
 }
 
 impl Display for TestStatus {
@@ -94,11 +140,26 @@ where
     T: Write,
 {
     let fmt_output = match &result.test_result {
-        TestStatus::Success => format!("\tTest #{} ({}): OK\n", test_num, result.test_name),
-        TestStatus::Fail(err_msg) => format!(
-            "\tTest #{} ({}): FAIL\n\n\t\t{}\n\n",
-            test_num, result.test_name, err_msg
-        ),
+        TestResultType::Single(status) => match status {
+            TestStatus::Success => format!("\tTest #{} ({}): OK\n", test_num, result.test_name),
+            TestStatus::Fail(err_msg) => format!(
+                "\tTest #{} ({}): FAIL\n\n\t\t{}\n\n",
+                test_num, result.test_name, err_msg
+            ),
+        },
+        TestResultType::Parameterized(statuses) => statuses
+            .iter()
+            .enumerate()
+            .map(|(idx, status)| match status {
+                TestStatus::Success => {
+                    format!("\tTest #{}.{} ({}): OK\n", test_num, idx, result.test_name)
+                }
+                TestStatus::Fail(err_msg) => format!(
+                    "\tTest #{}.{} ({}): FAIL\n\n\t\t{}\n\n",
+                    test_num, idx, result.test_name, err_msg
+                ),
+            })
+            .collect::<String>(),
     };
 
     let mut writer: BufWriter<T> = BufWriter::new(stream);
@@ -110,17 +171,21 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use TestResultType as TRT;
 
     #[test]
     fn write_test_output() {
         let ok_test = TestResult {
             test_name: "this_test_passes",
-            test_result: TestStatus::Success,
+            test_result: TRT::Single(TestStatus::Success),
         };
 
         let fail_test = TestResult {
             test_name: "this_test_fails",
-            test_result: TestStatus::Fail(format!("test failed after {}", ok_test.test_name)),
+            test_result: TRT::Single(TestStatus::Fail(format!(
+                "test failed after {}",
+                ok_test.test_name
+            ))),
         };
 
         let mut ok_result_buffer: Vec<u8> = Vec::new();
