@@ -121,6 +121,8 @@ macro_rules! cmd {
                             // Assumes UTF-8
                             tok_chars[0..tok_chars.len()-1].into_iter().collect()
                         );
+                    } else {
+                        quoted_arg.push(token);
                     }
                 }
                 final_args.extend(quoted_arg);
@@ -293,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_cmd_fmt_arg() {
-        const EXPECTED: &str = "hello world";
+        const EXPECTED: &str = "viva las vegas";
         fn __test_cmd() -> ExtelResult {
             let output = cmd!("echo -n \"{}\"", EXPECTED)
                 .output()

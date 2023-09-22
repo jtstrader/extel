@@ -6,16 +6,18 @@ use proc_macro::{Ident, TokenStream, TokenTree};
 pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
     let mut tokens: Vec<TokenTree> = function.clone().into_iter().collect();
 
-    if let Err(e) = validate_parameters_spec(&tokens) {
-        panic!("{}", e);
-    }
+    let func_name_idx = validate_parameters_spec(&tokens).unwrap();
 
     // Get function name and parameter(s)
-    let (func_name, span) = (tokens[1].to_string(), tokens[1].span());
+    let (func_name, span) = (
+        tokens[func_name_idx].to_string(),
+        tokens[func_name_idx].span(),
+    );
+
     let attr_list = attr.to_string();
     let inner_func_name = format!("__{}", func_name);
 
-    tokens[1] = TokenTree::Ident(Ident::new(&inner_func_name, span));
+    tokens[func_name_idx] = TokenTree::Ident(Ident::new(&inner_func_name, span));
 
     // Build test runner
     let test_runner_tokens = format!(
@@ -32,7 +34,12 @@ pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
 
     // Create wrapper around the input stream
     let final_func = format!(
-        "fn {}() -> ExtelResult {{ {} {} }}",
+        "{} {}() -> ExtelResult {{ {} {} }}",
+        tokens[0..func_name_idx]
+            .iter()
+            .map(|token| token.to_string())
+            .collect::<Vec<_>>()
+            .join(" "),
         func_name,
         tokens.into_iter().collect::<TokenStream>(),
         test_runner_tokens,
@@ -41,16 +48,29 @@ pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
     final_func.parse().unwrap()
 }
 
-fn validate_parameters_spec(tokens: &[TokenTree]) -> Result<(), String> {
-    // First, can only run on functions
-    match &tokens[0] {
-        TokenTree::Ident(ident) => {
-            if ident.to_string() != *"fn" {
-                return Err("parameters can only be applied to functions!".to_string());
-            }
-        }
-        _ => unreachable!(),
-    };
+/// Validate that the macro is being applied only to function. Return the resulting index of the
+/// function name.
+fn validate_parameters_spec(tokens: &[TokenTree]) -> Result<usize, &str> {
+    let mut i: usize = 0;
+    while i < tokens.len() {
+        // The only allowed starting idents are
+        //  - fn
+        //  - pub fn
+        //  - pub(crate) fn
+        //  - pub(super) fn
 
-    Ok(())
+        match &tokens[i] {
+            TokenTree::Ident(ident) => match ident.to_string().as_str() {
+                "fn" => return Ok(i + 1),
+                "pub" => {}
+                _ => return Err("parameters can only be applied to functions!"),
+            },
+            TokenTree::Group(_) => {}
+            _ => unreachable!(),
+        };
+
+        i += 1;
+    }
+
+    Err("reached end of token stream")
 }

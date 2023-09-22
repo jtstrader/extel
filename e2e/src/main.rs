@@ -1,30 +1,14 @@
-use extel::{fail, init_test_suite, parameters, pass, ExtelResult, RunnableTestSet, TestConfig};
+pub mod tests;
+
+use extel::{init_test_suite, RunnableTestSet, TestConfig};
+use tests::math_tests::{calculate, perfect_sqrt};
+
+use crate::tests::command_tests::echo;
 
 fn main() {
     init_test_suite!(MathTestSuite, calculate, perfect_sqrt);
+    init_test_suite!(EchoTestSuite, echo);
 
     MathTestSuite::run(TestConfig::default());
-}
-
-#[parameters(4_f64, 16_f64, 30_f64, 32_f64)]
-fn perfect_sqrt(x: f64) -> ExtelResult {
-    let sqrt = x.sqrt();
-    if sqrt == sqrt.floor() {
-        pass!()
-    } else {
-        fail!("{} is not a perfect square", x)
-    }
-}
-
-fn __calculate(x: f64, y: f64) -> f64 {
-    (x + y) / y
-}
-
-fn calculate() -> ExtelResult {
-    let result = __calculate(10_f64, 2_f64);
-    if result > 0_f64 {
-        pass!()
-    } else {
-        fail!("value of __calculate(10, 2) <= 0: got {}", result)
-    }
+    EchoTestSuite::run(TestConfig::default());
 }
