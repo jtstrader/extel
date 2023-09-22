@@ -88,7 +88,7 @@ macro_rules! cmd {
     ($cmd_str:expr) => {{
         // First, extract tokens by spliting them by spaces, but keep
         // together tokens that are wrapped in single/double quotes.
-        let mut cmd_str_tokens = $cmd_str.split(' ');
+        let mut cmd_str_tokens = $cmd_str.trim().split(' ');
         let command = cmd_str_tokens.next().expect("no command was provided");
         let mut args = cmd_str_tokens.map(String::from);
         let mut final_args: Vec<String> = Vec::new();

@@ -12,6 +12,14 @@ fn check_sum_into_two(sum: (i32, i32)) -> ExtelResult {
     }
 }
 
+#[parameters(vec![], vec![1])]
+fn check_vec(x: Vec<usize>) -> ExtelResult {
+    match x.is_empty() {
+        true => fail!("input is empty"),
+        false => pass!(),
+    }
+}
+
 #[parameters(1, 2, -1)]
 pub fn check_pub_fn(x: i32) -> ExtelResult {
     if x > 0 {
@@ -50,6 +58,17 @@ fn parameters_tuples() {
         TestResultType::Parameterized(vec![
             TestStatus::Success,
             TestStatus::Fail("invalid sum: expected 2, got 5".to_string())
+        ])
+    );
+}
+
+#[test]
+fn parameters_vec() {
+    assert_eq!(
+        check_vec().get_test_result(),
+        TestResultType::Parameterized(vec![
+            TestStatus::Fail("input is empty".to_string()),
+            TestStatus::Success
         ])
     );
 }
