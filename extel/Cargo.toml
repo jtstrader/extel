@@ -8,7 +8,6 @@ repository = "https://github.com/jtstrader/extel"
 license = "MIT"
 keywords = ["testing", "test", "parameterized"]
 categories = ["development-tools", "development-tools::testing"]
-exclude = ["/src/test_sets/"]
 
 [features]
 parameterized = []

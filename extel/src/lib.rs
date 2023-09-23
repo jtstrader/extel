@@ -127,9 +127,6 @@ use std::io::{BufWriter, Write};
 #[doc(hidden)]
 pub mod macros;
 
-/// For verifying/testing Extel.
-mod test_sets;
-
 /// The expected return type of extel test functions. This type is a generic type to wrap around
 /// both standard (single) and parameterized tests. The easiest way to create these results is to
 /// use the [`pass`] and [`fail`] macros.
