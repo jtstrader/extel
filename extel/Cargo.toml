@@ -14,4 +14,4 @@ exclude = ["/src/test_sets/"]
 parameterized = []
 
 [dependencies]
-extel_parameterized = { path = "../extel_parameterized" }
+extel_parameterized = "0.1.0"
