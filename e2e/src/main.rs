@@ -1,6 +1,6 @@
 pub mod tests;
 
-use extel::{init_test_suite, RunnableTestSet, TestConfig};
+use extel::prelude::*;
 use tests::{command_tests::*, math_tests::*};
 
 fn main() {
