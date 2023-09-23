@@ -1,7 +1,8 @@
 //! A set of all `extel` macros.
 
+#[cfg(not(doc))]
 #[macro_export]
-macro_rules! init_tests {
+macro_rules! __extel_init_tests {
     ($($test:expr),*) => {{
         #[allow(unused_mut)]
         let mut v: Vec<$crate::Test> = Vec::new();
@@ -193,15 +194,15 @@ macro_rules! init_test_suite {
 
         impl $crate::RunnableTestSet for $test_suite {
             fn run(cfg: $crate::TestConfig) -> Vec<$crate::TestResult> {
-                let test_set = $test_suite { tests: $crate::init_tests!($($test_name),*) };
+                let test_set = $test_suite { tests: $crate::__extel_init_tests!($($test_name),*) };
                 let mut writer: Option<Box<dyn ::std::io::Write>> = match cfg.output {
-                    $crate::OutputStyle::Stdout => Some(Box::new(::std::io::stdout())),
-                    $crate::OutputStyle::File(file_name) => {
+                    $crate::OutputDest::Stdout => Some(Box::new(::std::io::stdout())),
+                    $crate::OutputDest::File(file_name) => {
                         let file_handle = ::std::fs::File::create(file_name).expect("could not open output file");
                         Some(Box::new(file_handle))
                     },
-                    $crate::OutputStyle::Buffer(buffer) => Some(Box::new(buffer)),
-                    $crate::OutputStyle::None => None
+                    $crate::OutputDest::Buffer(buffer) => Some(Box::new(buffer)),
+                    $crate::OutputDest::None => None
                 };
 
                 if let Some(w) = writer.as_mut() {
@@ -217,7 +218,7 @@ macro_rules! init_test_suite {
                         let test_result = test.run_test();
 
                         if let Some(w) = writer.as_mut() {
-                           $crate::output_test_result(w, &test_result, test_id + 1);
+                           $crate::output_test_result(w, &test_result, test_id + 1, cfg.colored);
                         }
 
                         test_result
@@ -230,7 +231,7 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ExtelResult, OutputStyle, RunnableTestSet, TestConfig};
+    use crate::{ExtelResult, OutputDest, RunnableTestSet, TestConfig};
 
     /// # TEST
     ///   - Return a constant success!
@@ -250,13 +251,19 @@ mod tests {
 
         // Create output buffer
         let output_buffer: &mut Vec<u8> = &mut Vec::new();
-        BasicTestSet::run(TestConfig::default().output(OutputStyle::Buffer(output_buffer)));
+        BasicTestSet::run(
+            TestConfig::default()
+                .output(OutputDest::Buffer(output_buffer))
+                .colored(false),
+        );
 
         let output = String::from_utf8_lossy(output_buffer);
 
         assert_eq!(
             output,
-            *"[extel::macros::tests::init_test_suite_basic::BasicTestSet]\n\tTest #1 (always_succeed): OK\n\tTest #2 (always_fail): FAIL\n\n\t\tthis test failed?\n\n"
+            *"[extel::macros::tests::init_test_suite_basic::BasicTestSet]\n\t\
+            Test #1 (always_succeed) ... ok\n\t\
+            Test #2 (always_fail) ... FAILED\n\t  [x] this test failed?\n"
         );
     }
 
@@ -283,13 +290,15 @@ mod tests {
         let mut output_buffer: Vec<u8> = Vec::new();
 
         __test_cmd_suite::run(
-            TestConfig::default().output(OutputStyle::Buffer(&mut output_buffer)),
+            TestConfig::default()
+                .output(OutputDest::Buffer(&mut output_buffer))
+                .colored(false),
         );
 
         let output_result = String::from_utf8_lossy(&output_buffer);
         assert_eq!(
             output_result,
-            "[extel::macros::tests::test_cmd::__test_cmd_suite]\n\tTest #1 (__test_cmd): OK\n"
+            "[extel::macros::tests::test_cmd::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
     }
 
@@ -318,13 +327,15 @@ mod tests {
         let mut output_buffer: Vec<u8> = Vec::new();
 
         __test_cmd_suite::run(
-            TestConfig::default().output(OutputStyle::Buffer(&mut output_buffer)),
+            TestConfig::default()
+                .output(OutputDest::Buffer(&mut output_buffer))
+                .colored(false),
         );
 
         let output_result = String::from_utf8_lossy(&output_buffer);
         assert_eq!(
             output_result,
-            "[extel::macros::tests::test_cmd_fmt_arg::__test_cmd_suite]\n\tTest #1 (__test_cmd): OK\n"
+            "[extel::macros::tests::test_cmd_fmt_arg::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
     }
 }

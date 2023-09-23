@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        cmd, fail, init_test_suite, pass, ExtelResult, OutputStyle, RunnableTestSet, TestConfig,
+        cmd, fail, init_test_suite, pass, ExtelResult, OutputDest, RunnableTestSet, TestConfig,
         TestResultType, TestStatus,
     };
 
@@ -71,13 +71,17 @@ mod tests {
         let output_buffer: &mut Vec<u8> = &mut Vec::new();
 
         init_test_suite!(EchoTestSet, echo_hello_world, echo_hello_earth);
-        EchoTestSet::run(TestConfig::default().output(OutputStyle::Buffer(output_buffer)));
+        EchoTestSet::run(
+            TestConfig::default()
+                .output(OutputDest::Buffer(output_buffer))
+                .colored(false),
+        );
 
         let output = String::from_utf8_lossy(output_buffer);
         assert_eq!(
             output,
-            "[extel::test_sets::echo::tests::echo_test_set::EchoTestSet]\n\tTest #1 (echo_hello_world): OK\n\
-            \tTest #2 (echo_hello_earth): FAIL\n\n\t\tmismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'\n\n"
+            "[extel::test_sets::echo::tests::echo_test_set::EchoTestSet]\n\tTest #1 (echo_hello_world) ... ok\n\
+            \tTest #2 (echo_hello_earth) ... FAILED\n\t  [x] mismatched output from echo: expected 'Hello, world!', got 'Hello, earth!'\n"
         );
     }
 
@@ -92,7 +96,7 @@ mod tests {
         );
 
         assert!(
-            EchoTestSet::run(TestConfig::default().output(OutputStyle::None))
+            EchoTestSet::run(TestConfig::default().output(OutputDest::None))
                 .into_iter()
                 .all(|test| test.test_result == TestResultType::Single(TestStatus::Success))
         );

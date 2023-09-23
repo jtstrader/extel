@@ -1,12 +1,57 @@
-use std::{
-    fmt::Display,
-    io::{BufWriter, Write},
-};
+//! ## Extel - Extended Testing Library
+//! Extel is a testing library that intends to help create scalable test suites with stateless
+//! tests. Extel's primary purpose is to make writing tests fast, easy, and performant. A common
+//! use case for Extel is when writing integration tests for external binaries/executables. Extel
+//! comes with some macros for creating and parsing command results to streamline the process of
+//! creating and running CLI commands.
+//!
+//! Think of Extel like a scripting language for tests. There's no need for importing a set of
+//! wacky modules, or writing weird redirections in a shell language to capture stdout. Instead,
+//! you can use Extel to save the output or status results of the commands you want to run, and
+//! then chose where your test output goes, too!
+//!
+//! ## Usage
+//! Extel is intended to function on zero argument or single argument functions (the former being
+//! called *single* tests and the latter *parameterized* tests). After creating your test function,
+//! you can register it using the [`init_test_suite`] macro. This will scaffold a struct containing
+//! pointers to the functions passed in. Calling the [`run`](RunnableTestSet::run) function on the
+//! generated struct will immediately go through all tests and collect the results into a vector
+//! for the user to parse through if they so wish.
+//!
+//! Note that all Extel test functions expect an [`ExtelResult`] in its return. Using another type
+//! will cause the macros generating the test suite to fail, or will return some weird errors while
+//! using the `parameters` proc macro.
+//!
+//! ```rust
+//! use extel::{pass, fail, cmd, init_test_suite, ExtelResult, RunnableTestSet, TestConfig};
+//! use extel_parameterized::parameters;
+//!
+//! fn single_test() -> ExtelResult {
+//!     let mut my_cmd = cmd!("echo -n \"hello world\"");
+//!     let output = my_cmd.output().unwrap();
+//!     let string_output = String::from_utf8_lossy(&output.stdout);
+//!
+//!     if string_output == *"hello world" {
+//!         pass!()
+//!     } else {
+//!         fail!("expected 'hello world', got '{}'", string_output)
+//!     }
+//! }
+//!
+//! #[parameters(1, 2, -2, 4)]
+//! fn param_test(x: i32) -> ExtelResult {
+//!     if x >= 0 {
+//!         pass!()
+//!     } else {
+//!         fail!("{} < 0", x)
+//!     }
+//! }
+//!
+//! fn main() {
+//!     init_test_suite!(ExtelDemo, single_test, param_test);
+//!     ExtelDemo::run(TestConfig::default());
+//! }
 
-pub mod macros;
-pub mod test_sets;
-
-#[cfg(feature = "parameterized")]
 /// Convert a *single argument function* into a parameterized function. The expected function
 /// signature is a single argument function (can be any type) that returns an
 /// [`ExtelResult`](crate::ExtelResult).
@@ -36,7 +81,54 @@ pub mod test_sets;
 ///     ])
 /// );
 /// ```
+/// > *This is only available with the `parameterized` feature enabled.*
+#[cfg(feature = "parameterized")]
 pub use extel_parameterized::parameters;
+
+pub mod prelude {
+    pub use crate::{cmd, fail, init_test_suite, pass, ExtelResult, RunnableTestSet, TestConfig};
+
+    /// Convert a *single argument function* into a parameterized function. The expected function
+    /// signature is a single argument function (can be any type) that returns an
+    /// [`ExtelResult`](crate::ExtelResult).
+    ///
+    /// While technically possible, this macro is not intended to be used to run tests
+    /// manually. This macro is specifically for the purpose of helping the [test
+    /// initializer](crate::init_test_suite) prepare parameterized tests.
+    ///
+    /// # Example
+    /// ```rust
+    /// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
+    /// use extel_parameterized::parameters;
+    ///
+    /// #[parameters(2, 4)]
+    /// fn less_than_3(x: i32) -> ExtelResult {
+    ///     match x < 3 {
+    ///         true => pass!(),
+    ///         false => fail!("{} >= 3", x),
+    ///     }
+    /// }
+    ///
+    /// assert_eq!(
+    ///     less_than_3().get_test_result(),
+    ///     TestResultType::Parameterized(vec![
+    ///         TestStatus::Success,
+    ///         TestStatus::Fail(String::from("4 >= 3"))
+    ///     ])
+    /// );
+    /// ```
+    /// > *This is only available with the `parameterized` feature enabled.*
+    #[cfg(feature = "parameterized")]
+    pub use extel_parameterized::parameters;
+}
+
+use std::io::{BufWriter, Write};
+
+#[doc(hidden)]
+pub mod macros;
+
+/// For verifying/testing Extel.
+mod test_sets;
 
 /// The expected return type of extel test functions. This type is a generic type to wrap around
 /// both standard (single) and parameterized tests. The easiest way to create these results is to
@@ -145,22 +237,9 @@ pub struct TestResult {
     pub test_result: TestResultType,
 }
 
-impl Display for TestStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                TestStatus::Success => String::from("OK"),
-                TestStatus::Fail(msg) => format!("FAIL\n\n\t\t{}\n", msg),
-            }
-        )
-    }
-}
-
 /// The output method for logging test results.
 #[derive(Debug)]
-pub enum OutputStyle<'a> {
+pub enum OutputDest<'a> {
     Stdout,
     File(&'static str),
     Buffer(&'a mut Vec<u8>),
@@ -170,12 +249,20 @@ pub enum OutputStyle<'a> {
 /// A test configuration type that determines what features will be enabled on the tests.
 #[derive(Debug)]
 pub struct TestConfig<'a> {
-    pub output: OutputStyle<'a>,
+    pub output: OutputDest<'a>,
+    pub colored: bool,
 }
 
 impl<'a> TestConfig<'a> {
-    pub fn output(mut self, output_style: OutputStyle<'a>) -> Self {
+    /// Change the output destination.
+    pub fn output(mut self, output_style: OutputDest<'a>) -> Self {
         self.output = output_style;
+        self
+    }
+
+    /// Change whether or not the logging should output with ANSI color codes.
+    pub fn colored(mut self, yes: bool) -> Self {
+        self.colored = yes;
         self
     }
 }
@@ -183,25 +270,51 @@ impl<'a> TestConfig<'a> {
 impl<'a> Default for TestConfig<'a> {
     fn default() -> Self {
         Self {
-            output: OutputStyle::Stdout,
+            output: OutputDest::Stdout,
+            colored: true,
         }
     }
 }
 
 /// A test set that produces a list of test results.
 pub trait RunnableTestSet {
+    /// Run a test set with the provided configuration to create a list of test results. The test
+    /// suite can contain both single, or standard, tests and parameterized tests. The results of
+    /// the parameterized tests will be flattened into the resulting vec.
     fn run(cfg: TestConfig) -> Vec<TestResult>;
 }
 
-pub fn output_test_result<T>(stream: T, result: &TestResult, test_num: usize)
-where
-    T: Write,
-{
+/// Output the test results to the desired stream. This function is public only to give
+/// availability to the [test initializer](crate::init_test_suite). If you wish to generate test
+/// output, consider [RunnableTestSet::run].
+pub fn output_test_result<T: Write>(
+    stream: T,
+    result: &TestResult,
+    test_num: usize,
+    colored: bool,
+) {
+    // Kinda bogus but it'll work :V
+    let color_terminator = match colored {
+        true => "\x1b[0m",
+        false => "",
+    };
+    let ok_color = match colored {
+        true => "\x1b[32m",
+        false => "",
+    };
+    let fail_color = match colored {
+        true => "\x1b[31m",
+        false => "",
+    };
+
     let fmt_output = match &result.test_result {
         TestResultType::Single(status) => match status {
-            TestStatus::Success => format!("\tTest #{} ({}): OK\n", test_num, result.test_name),
+            TestStatus::Success => format!(
+                "\tTest #{} ({}) ... {ok_color}ok{color_terminator}\n",
+                test_num, result.test_name
+            ),
             TestStatus::Fail(err_msg) => format!(
-                "\tTest #{} ({}): FAIL\n\n\t\t{}\n\n",
+                "\tTest #{} ({}) ... {fail_color}FAILED{color_terminator}\n\t  [x] {}\n",
                 test_num, result.test_name, err_msg
             ),
         },
@@ -210,11 +323,17 @@ where
             .enumerate()
             .map(|(idx, status)| match status {
                 TestStatus::Success => {
-                    format!("\tTest #{}.{} ({}): OK\n", test_num, idx, result.test_name)
+                    format!(
+                        "\tTest #{}.{} ({}) ... {ok_color}ok{color_terminator}\n",
+                        test_num, idx, result.test_name
+                    )
                 }
                 TestStatus::Fail(err_msg) => format!(
-                    "\tTest #{}.{} ({}): FAIL\n\n\t\t{}\n\n",
-                    test_num, idx, result.test_name, err_msg
+                    "\tTest #{}.{} ({}) ... {fail_color}FAILED{color_terminator}\n\t  [x] {}\n",
+                    test_num,
+                    idx + 1,
+                    result.test_name,
+                    err_msg
                 ),
             })
             .collect::<String>(),
@@ -232,7 +351,7 @@ mod tests {
     use TestResultType as TRT;
 
     #[test]
-    fn write_test_output() {
+    fn write_test_output_no_color() {
         let ok_test = TestResult {
             test_name: "this_test_passes",
             test_result: TRT::Single(TestStatus::Success),
@@ -249,17 +368,49 @@ mod tests {
         let mut ok_result_buffer: Vec<u8> = Vec::new();
         let mut fail_result_buffer: Vec<u8> = Vec::new();
 
-        output_test_result(&mut ok_result_buffer, &ok_test, 1);
-        output_test_result(&mut fail_result_buffer, &fail_test, 2);
+        output_test_result(&mut ok_result_buffer, &ok_test, 1, false);
+        output_test_result(&mut fail_result_buffer, &fail_test, 2, false);
 
         assert_eq!(
             String::from_utf8_lossy(&ok_result_buffer),
-            "\tTest #1 (this_test_passes): OK\n"
+            "\tTest #1 (this_test_passes) ... ok\n"
         );
 
         assert_eq!(
             String::from_utf8_lossy(&fail_result_buffer),
-            "\tTest #2 (this_test_fails): FAIL\n\n\t\ttest failed after this_test_passes\n\n"
+            "\tTest #2 (this_test_fails) ... FAILED\n\t  [x] test failed after this_test_passes\n"
+        );
+    }
+
+    #[test]
+    fn write_test_output_with_color() {
+        let ok_test = TestResult {
+            test_name: "this_test_passes",
+            test_result: TRT::Single(TestStatus::Success),
+        };
+
+        let fail_test = TestResult {
+            test_name: "this_test_fails",
+            test_result: TRT::Single(TestStatus::Fail(format!(
+                "test failed after {}",
+                ok_test.test_name
+            ))),
+        };
+
+        let mut ok_result_buffer: Vec<u8> = Vec::new();
+        let mut fail_result_buffer: Vec<u8> = Vec::new();
+
+        output_test_result(&mut ok_result_buffer, &ok_test, 1, true);
+        output_test_result(&mut fail_result_buffer, &fail_test, 2, true);
+
+        assert_eq!(
+            String::from_utf8_lossy(&ok_result_buffer),
+            "\tTest #1 (this_test_passes) ... \x1b[32mok\x1b[0m\n"
+        );
+
+        assert_eq!(
+            String::from_utf8_lossy(&fail_result_buffer),
+            "\tTest #2 (this_test_fails) ... \x1b[31mFAILED\x1b[0m\n\t  [x] test failed after this_test_passes\n"
         );
     }
 }
