@@ -2,12 +2,15 @@
 name = "extel"
 description = "An extended testing library for scaffolding tests as quickly and easily as possible"
 authors = ["Jacob Strader <jtstrader851@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 repository = "https://github.com/jtstrader/extel"
 license = "MIT"
 keywords = ["testing", "test", "parameterized"]
 categories = ["development-tools", "development-tools::testing"]
+
+[package.metadata.docs.rs]
+features = ["parameterized"]
 
 [features]
 parameterized = []
