@@ -1,41 +1,31 @@
-use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
+use extel::{prelude::*, TestResultType, TestStatus};
 use extel_parameterized::parameters;
 
 #[parameters((1, 1), (2, 3))]
 fn check_sum_into_two(sum: (i32, i32)) -> ExtelResult {
     const EXPECTED: i32 = 2;
-
     let (a, b) = sum;
-    match a + b {
-        EXPECTED => pass!(),
-        _ => fail!("invalid sum: expected {}, got {}", EXPECTED, a + b),
-    }
+    extel_assert!(
+        a + b == EXPECTED,
+        "invalid sum: expected {}, got {}",
+        EXPECTED,
+        a + b
+    )
 }
 
 #[parameters(vec![], vec![1])]
 fn check_vec(x: Vec<usize>) -> ExtelResult {
-    match x.is_empty() {
-        true => fail!("input is empty"),
-        false => pass!(),
-    }
+    extel_assert!(!x.is_empty(), "input is empty")
 }
 
 #[parameters(1, 2, -1)]
 pub fn check_pub_fn(x: i32) -> ExtelResult {
-    if x > 0 {
-        pass!()
-    } else {
-        fail!("x less than 0")
-    }
+    extel_assert!(x >= 0, "x less than 0")
 }
 
 #[parameters(1, 2, -1)]
 pub(crate) fn check_pub_crate_fn(x: i32) -> ExtelResult {
-    if x > 0 {
-        pass!()
-    } else {
-        fail!("x less than 0")
-    }
+    extel_assert!(x >= 0, "x less than 0")
 }
 
 mod super_test {
@@ -43,11 +33,7 @@ mod super_test {
 
     #[parameters(1, 2, -1)]
     pub(super) fn check_pub_super_fn(x: i32) -> ExtelResult {
-        if x > 0 {
-            pass!()
-        } else {
-            fail!("x less than 0")
-        }
+        extel_assert!(x >= 0, "x less than 0")
     }
 }
 
