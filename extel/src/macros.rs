@@ -66,6 +66,51 @@ macro_rules! fail {
     ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt)))}
 }
 
+/// Assert if a given condition is true/false. If the condition is true, call the [`pass`] macro,
+/// else call the [`fail`] macro.
+///
+/// The fail macro can contain the following messages depending on which arm of the macro is used:
+///   1. A default message such as "[condition] assertion failed."
+///   2. A custom error message.
+///   3. A custom format message that can take variable arguments.
+///
+/// This assertion is *not* like Rust's [`assert`] macro, and should not panic unless the given
+/// condition or format arguments can panic. This macro returns an
+/// [`ExtelResult`](crate::ExtelResult)
+///
+/// # Example
+/// ```rust
+/// use extel::extel_assert;
+///
+/// let (x, y, z) = (1, 1, 2);
+///
+/// // Resulting passes and error messages
+/// extel_assert!(x == y);                         // passes -- no error message
+/// extel_assert!(x == z);                         // "[x == z] assertion failed"
+/// extel_assert!(x == z, "z was not 1!");         // "z was not 1!"
+/// extel_assert!(y == z, "y = {}, z = {}", y, z); // "y = 1, z = 2"
+/// ```
+#[macro_export]
+macro_rules! extel_assert {
+    ($cond:expr) => {
+        match $cond {
+            true => $crate::pass!(),
+            false => $crate::fail!("[{}] assertion failed", stringify!($cond)),
+        }
+    };
+
+    ($cond:expr, $err:expr) => {
+        match $cond {
+            true => $crate::pass!(),
+            false => $crate::fail!("{}", $err),
+        }
+    };
+
+    ($cond:expr, $err_fmt:expr, $($arg:expr),+) => {
+        extel_assert!($cond, format!($err_fmt, $($arg),+))
+    }
+}
+
 /// Constructs a [`Command`](std::process::Command) as if receiving the command directly from the
 /// CLI. Arguments wrapped in single or double quotes are treated as single arguments, allowing
 /// multiple tokens to be passed as a single argument to a command.
@@ -336,6 +381,40 @@ mod tests {
         assert_eq!(
             output_result,
             "[extel::macros::tests::test_cmd_fmt_arg::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
+        );
+    }
+
+    #[test]
+    fn test_extel_assert() {
+        const EXPECTED: &str = "viva las vegas";
+        fn __test_cmd() -> ExtelResult {
+            let output = cmd!("echo -n \"{}\"", EXPECTED)
+                .output()
+                .expect("could not execute command");
+            let string_output =
+                String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
+
+            extel_assert!(
+                string_output == *EXPECTED,
+                "invalid result, expected '{}', got '{}'",
+                EXPECTED,
+                string_output
+            )
+        }
+
+        init_test_suite!(__test_cmd_suite, __test_cmd);
+        let mut output_buffer: Vec<u8> = Vec::new();
+
+        __test_cmd_suite::run(
+            TestConfig::default()
+                .output(OutputDest::Buffer(&mut output_buffer))
+                .colored(false),
+        );
+
+        let output_result = String::from_utf8_lossy(&output_buffer);
+        assert_eq!(
+            output_result,
+            "[extel::macros::tests::test_extel_assert::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
     }
 }
