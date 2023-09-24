@@ -36,7 +36,10 @@ use proc_macro::{Ident, TokenStream, TokenTree};
 pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
     let mut tokens: Vec<TokenTree> = function.clone().into_iter().collect();
 
-    let func_name_idx = validate_parameters_spec(&tokens).unwrap();
+    let func_name_idx = match validate_parameters_spec(&tokens) {
+        Ok(name) => name,
+        Err(e) => panic!("{}", e),
+    };
 
     // Get function name and parameter(s)
     let (func_name, span) = (
@@ -80,7 +83,7 @@ pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
 
 /// Validate that the macro is being applied only to function. Return the resulting index of the
 /// function name.
-fn validate_parameters_spec(tokens: &[TokenTree]) -> Result<usize, &str> {
+fn validate_parameters_spec(tokens: &[TokenTree]) -> Result<usize, &'static str> {
     let mut i: usize = 0;
     while i < tokens.len() {
         // The only allowed starting idents are
@@ -89,14 +92,12 @@ fn validate_parameters_spec(tokens: &[TokenTree]) -> Result<usize, &str> {
         //  - pub(crate) fn
         //  - pub(super) fn
 
-        match &tokens[i] {
-            TokenTree::Ident(ident) => match ident.to_string().as_str() {
+        if let TokenTree::Ident(ident) = &tokens[i] {
+            match ident.to_string().as_str() {
                 "fn" => return Ok(i + 1),
                 "pub" => {}
-                _ => return Err("parameters can only be applied to functions!"),
-            },
-            TokenTree::Group(_) => {}
-            _ => unreachable!(),
+                _ => return Err("#[parameters(...)] can only be applied to functions"),
+            };
         };
 
         i += 1;

@@ -28,6 +28,17 @@ pub(crate) fn check_pub_crate_fn(x: i32) -> ExtelResult {
     extel_assert!(x >= 0, "x less than 0")
 }
 
+#[parameters(1, 2, -1)]
+/// This is a doc comment.
+fn doc_comment_fn(x: i32) -> ExtelResult {
+    #[parameters(1)]
+    fn y(x: i32) -> ExtelResult {
+        pass!()
+    }
+
+    extel_assert!(x >= 0, "x less than 0")
+}
+
 mod super_test {
     use super::*;
 
@@ -88,6 +99,18 @@ fn parameters_pub_super() {
     use super_test::*;
     assert_eq!(
         check_pub_super_fn().get_test_result(),
+        TestResultType::Parameterized(vec![
+            TestStatus::Success,
+            TestStatus::Success,
+            TestStatus::Fail("x less than 0".to_string())
+        ])
+    )
+}
+
+#[test]
+fn doc_comment() {
+    assert_eq!(
+        doc_comment_fn().get_test_result(),
         TestResultType::Parameterized(vec![
             TestStatus::Success,
             TestStatus::Success,
