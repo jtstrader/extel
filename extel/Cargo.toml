@@ -2,7 +2,7 @@
 name = "extel"
 description = "An extended testing library for scaffolding tests as quickly and easily as possible"
 authors = ["Jacob Strader <jtstrader851@gmail.com>"]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 repository = "https://github.com/jtstrader/extel"
 license = "MIT"

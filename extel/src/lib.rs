@@ -86,7 +86,9 @@
 pub use extel_parameterized::parameters;
 
 pub mod prelude {
-    pub use crate::{cmd, fail, init_test_suite, pass, ExtelResult, RunnableTestSet, TestConfig};
+    pub use crate::{
+        cmd, extel_assert, fail, init_test_suite, pass, ExtelResult, RunnableTestSet, TestConfig,
+    };
 
     /// Convert a *single argument function* into a parameterized function. The expected function
     /// signature is a single argument function (can be any type) that returns an
