@@ -70,13 +70,13 @@ macro_rules! fail {
 /// else call the [`fail`] macro.
 ///
 /// The fail macro can contain the following messages depending on which arm of the macro is used:
-///   1. A default message such as "[condition] assertion failed."
+///   1. A default message such as "\[condition\] assertion failed."
 ///   2. A custom error message.
 ///   3. A custom format message that can take variable arguments.
 ///
 /// This assertion is *not* like Rust's [`assert`] macro, and should not panic unless the given
 /// condition or format arguments can panic. This macro returns an
-/// [`ExtelResult`](crate::ExtelResult)
+/// [`ExtelResult`](crate::ExtelResult).
 ///
 /// # Example
 /// ```rust
