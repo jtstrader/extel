@@ -23,7 +23,7 @@ will cause the macros generating the test suite to fail, or will return some wei
 using the `parameters` proc macro.
 
 ```rust
-use extel::{pass, fail, cmd, init_test_suite, ExtelResult, RunnableTestSet, TestConfig};
+use extel::prelude::*;
 use extel_parameterized::parameters;
 
 fn single_test() -> ExtelResult {
@@ -31,20 +31,16 @@ fn single_test() -> ExtelResult {
     let output = my_cmd.output().unwrap();
     let string_output = String::from_utf8_lossy(&output.stdout);
 
-    if string_output == *"hello world" {
-        pass!()
-    } else {
-        fail!("expected 'hello world', got '{}'", string_output)
-    }
+    extel_assert!(
+        string_output == *"hello world",
+        "expected 'hello world', got '{}'",
+        string_output
+    )
 }
 
 #[parameters(1, 2, -2, 4)]
 fn param_test(x: i32) -> ExtelResult {
-    if x >= 0 {
-        pass!()
-    } else {
-        fail!("{} < 0", x)
-    }
+    extel_assert!(x >= 0, "{} < 0", x)
 }
 
 fn main() {

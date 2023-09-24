@@ -1,6 +1,6 @@
-# Extel - Extendable Testing Library
+# Extel - Extended Testing Library
 Extel is a testing library for Rust that supports both unit/integration testing for Rust projects and external APIs
-through FFI/`std::process`.
+through FFI or std::process.
 
 # Using Extel
 Extel is designed to work with *stateless functions*. Originally built to test executables built in C, Extel follows the
@@ -38,16 +38,24 @@ wrap the input in a tuple or struct to test. You must add Extel with the `parame
 /// Check if the number is positive.
 #[parameters(5, 10, -1)]
 fn positive_num(n: usize) -> ExtelResult {
-    if n > 0 {
-        pass!()
-    } else {
-        fail!("{} is not positive", n)
-    }
+    extel_assert!(n > 0, "{} is not positive", n)
 }
 
+/// # TEST
+/// Passing multiple args, check if lhs is greater than rhs.
+#[parameters((4, 3), (4, 6))]
+fn greater_than(nums: (usize, usize)) -> ExtelResult {
+    let (lhs, rhs) = nums;
+    extel_assert!(
+        lhs > rhs,
+        "left hand side is less than or equal to right hand side! ({} <= {})",
+        lhs,
+        rhs
+    )
+}
 
 fn main() {
-    init_test_suite!(ParameterizedTestSet, positive_num);
+    init_test_suite!(ParameterizedTestSet, positive_num, greater_than);
     ParameterizedTestSet::run(TestConfig::default().output(OutputStyle::Stdout));
 }
 ```

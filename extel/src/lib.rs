@@ -23,7 +23,7 @@
 //! using the `parameters` proc macro.
 //!
 //! ```rust
-//! use extel::{pass, fail, cmd, init_test_suite, ExtelResult, RunnableTestSet, TestConfig};
+//! use extel::prelude::*;
 //! use extel_parameterized::parameters;
 //!
 //! fn single_test() -> ExtelResult {
@@ -31,20 +31,16 @@
 //!     let output = my_cmd.output().unwrap();
 //!     let string_output = String::from_utf8_lossy(&output.stdout);
 //!
-//!     if string_output == *"hello world" {
-//!         pass!()
-//!     } else {
-//!         fail!("expected 'hello world', got '{}'", string_output)
-//!     }
+//!     extel_assert!(
+//!         string_output == *"hello world",
+//!         "expected 'hello world', got '{}'",
+//!         string_output
+//!     )
 //! }
 //!
 //! #[parameters(1, 2, -2, 4)]
 //! fn param_test(x: i32) -> ExtelResult {
-//!     if x >= 0 {
-//!         pass!()
-//!     } else {
-//!         fail!("{} < 0", x)
-//!     }
+//!     extel_assert!(x >= 0, "{} < 0", x)
 //! }
 //!
 //! fn main() {
@@ -62,15 +58,12 @@
 ///
 /// # Example
 /// ```rust
-/// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
+/// use extel::prelude::*;
 /// use extel_parameterized::parameters;
 ///
 /// #[parameters(2, 4)]
 /// fn less_than_3(x: i32) -> ExtelResult {
-///     match x < 3 {
-///         true => pass!(),
-///         false => fail!("{} >= 3", x),
-///     }
+///     extel_assert!(x < 3, "{} >= 3", x)
 /// }
 ///
 /// assert_eq!(
@@ -100,15 +93,12 @@ pub mod prelude {
     ///
     /// # Example
     /// ```rust
-    /// use extel::{fail, pass, ExtelResult, TestResultType, TestStatus};
+    /// use extel::prelude::*;
     /// use extel_parameterized::parameters;
     ///
     /// #[parameters(2, 4)]
     /// fn less_than_3(x: i32) -> ExtelResult {
-    ///     match x < 3 {
-    ///         true => pass!(),
-    ///         false => fail!("{} >= 3", x),
-    ///     }
+    ///     extel_assert!(x < 3, "{} >= 3", x)
     /// }
     ///
     /// assert_eq!(

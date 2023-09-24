@@ -63,7 +63,7 @@ macro_rules! fail {
         Box::new($crate::TestStatus::Fail(format!($fmt, $($arg),*)))
     };
 
-    ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt)))}
+    ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt))) }
 }
 
 /// Assert if a given condition is true/false. If the condition is true, call the [`pass`] macro,
@@ -201,18 +201,14 @@ macro_rules! cmd {
 /// # Example
 /// ```rust
 /// use std::process::Command;
-/// use extel::{fail, init_test_suite, pass, ExtelResult, TestConfig, RunnableTestSet};
+/// use extel::prelude::*; 
 ///
 /// /// Run end-to-end test of application.
 /// fn echo_no_arg_e2e() -> ExtelResult {
 ///     match Command::new("echo").status() {
 ///         Ok(exit_code) => {
 ///             let code: i32 = exit_code.code().unwrap_or(-1);
-///             if code == 0 {
-///                 pass!()
-///             } else {
-///                 fail!("failed with exit code {}", code)
-///             }
+///             extel_assert!(code == 0, "failed with exit code: {}", code)
 ///         },
 ///         Err(msg) => {
 ///             fail!("failed to execute with error: {}", msg)
@@ -221,7 +217,7 @@ macro_rules! cmd {
 /// }
 ///
 /// // Outputs:
-/// //  Test #1 (echo_no_arg_e2e): OK
+/// //  Test #1 (echo_no_arg_e2e) ... ok
 /// init_test_suite!(EchoTestSuite, echo_no_arg_e2e);
 /// EchoTestSuite::run(TestConfig::default());
 /// ```
@@ -321,6 +317,9 @@ mod tests {
             let string_output =
                 String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
 
+            // LEAVE AS pass!()/fail!() SYNTAX!
+            // There is a test in this module that covers using extel_assert!. Keep these tests to
+            // verify that pass!()/fail!() still functions as expected.
             if string_output == *"hello world" {
                 pass!()
             } else {
@@ -357,6 +356,9 @@ mod tests {
             let string_output =
                 String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
 
+            // LEAVE AS pass!()/fail!() SYNTAX!
+            // There is a test in this module that covers using extel_assert!. Keep these tests to
+            // verify that pass!()/fail!() still functions as expected.
             if string_output == *EXPECTED {
                 pass!()
             } else {
