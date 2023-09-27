@@ -129,6 +129,30 @@ macro_rules! extel_assert {
 ///     String::from_utf8_lossy(&cmd_output_fmt.stdout)
 /// )
 /// ```
+///
+/// It is suggested to use this macro with string literals and passing in arguments, but if you
+/// prefer using Path/PathBuf/OsStr (the typical arguments expected by
+/// [`Command`](std::process::Command)), then you can use a special version of this macro that is
+/// meant to work with any values and arguments that can be passed into a regular
+/// [`Command`](std::process::Command).
+///
+/// # Example
+/// ```rust
+/// use extel::cmd;
+/// use std::path::Path;
+///
+/// const EXPECTED: &str = "hello world";
+/// let exe_path = Path::new("echo");
+///
+/// let cmd_output = cmd!("echo -n \"hello world\"").output().unwrap();
+/// let cmd_output_fmt = cmd!(exe_path => ["-n", "hello world"]).output().unwrap();
+///
+/// assert_eq!(
+///     String::from_utf8_lossy(&cmd_output.stdout),
+///     String::from_utf8_lossy(&cmd_output_fmt.stdout)
+/// )
+
+/// ```
 #[macro_export]
 macro_rules! cmd {
     ($cmd_str:expr) => {{
@@ -184,10 +208,12 @@ macro_rules! cmd {
         command
     }};
 
-    ($cmd_str:expr, $($arg:expr),*) => {{
+    ($cmd_str:literal, $($arg:expr),*) => {{
         let fmt = format!($cmd_str, $($arg),*);
         cmd!(fmt)
     }};
+
+    ($cmd:expr => $args:expr) => { ::std::process::Command::new($cmd).args($args) }
 }
 
 /// The test suite initializer that constructs test suits based on the provided name (first
@@ -201,7 +227,7 @@ macro_rules! cmd {
 /// # Example
 /// ```rust
 /// use std::process::Command;
-/// use extel::prelude::*; 
+/// use extel::prelude::*;
 ///
 /// /// Run end-to-end test of application.
 /// fn echo_no_arg_e2e() -> ExtelResult {
@@ -272,6 +298,8 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use crate::{ExtelResult, OutputDest, RunnableTestSet, TestConfig};
 
     /// # TEST
@@ -417,6 +445,41 @@ mod tests {
         assert_eq!(
             output_result,
             "[extel::macros::tests::test_extel_assert::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
+        );
+    }
+
+    #[test]
+    fn test_cmd_path() {
+        const EXPECTED: &str = "viva las vegas";
+        fn __test_cmd() -> ExtelResult {
+            let exe_path = Path::new("echo");
+            let output = cmd!(exe_path => ["-n", EXPECTED])
+                .output()
+                .expect("could not execute command");
+            let string_output =
+                String::from_utf8(output.stdout).expect("output contained non-UTF-8 chars");
+
+            extel_assert!(
+                string_output == *EXPECTED,
+                "invalid result, expected '{}', got '{}'",
+                EXPECTED,
+                string_output
+            )
+        }
+
+        init_test_suite!(__test_cmd_suite, __test_cmd);
+        let mut output_buffer: Vec<u8> = Vec::new();
+
+        __test_cmd_suite::run(
+            TestConfig::default()
+                .output(OutputDest::Buffer(&mut output_buffer))
+                .colored(false),
+        );
+
+        let output_result = String::from_utf8_lossy(&output_buffer);
+        assert_eq!(
+            output_result,
+            "[extel::macros::tests::test_cmd_path::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
     }
 }
