@@ -54,20 +54,15 @@ pub fn parameters(attr: TokenStream, function: TokenStream) -> TokenStream {
 
     // Build test runner
     let test_runner_tokens = format!(
-        "let extel_single_results = [{attr_list}].into_iter().map({inner_func_name}).collect::<Vec<extel::ExtelResult>>();\
-        Box::new(
-            extel_single_results
-                .into_iter()
-                .map(TryInto::<extel::TestStatus>::try_into)
-                .flatten()
-                .collect::<Vec<_>>(),
-        )"
-
+        "[{attr_list}]
+            .into_iter()
+            .map({inner_func_name})
+            .collect::<Vec<extel::ExtelResult>>()"
     );
 
     // Create wrapper around the input stream
     let final_func = format!(
-        "{} {}() -> ExtelResult {{ {} {} }}",
+        "{} {}() -> Vec<ExtelResult> {{ {} {} }}",
         tokens[0..func_name_idx]
             .iter()
             .map(|token| token.to_string())

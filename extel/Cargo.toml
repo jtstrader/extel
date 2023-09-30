@@ -16,4 +16,5 @@ features = ["parameterized"]
 parameterized = []
 
 [dependencies]
-extel_parameterized = "0.1.0"
+extel_parameterized = { path = "../extel_parameterized" }
+thiserror = "1.0.49"

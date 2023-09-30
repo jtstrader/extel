@@ -1,4 +1,4 @@
-use extel::{prelude::*, TestResultType, TestStatus};
+use extel::{errors::Error as XE, prelude::*};
 use extel_parameterized::parameters;
 
 #[parameters((1, 1), (2, 3))]
@@ -50,71 +50,46 @@ mod super_test {
 
 #[test]
 fn parameters_tuples() {
-    assert_eq!(
-        check_sum_into_two().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Success,
-            TestStatus::Fail("invalid sum: expected 2, got 5".to_string())
-        ])
-    );
+    assert!(matches!(
+        &check_sum_into_two()[..],
+        [Ok(_), Err(XE::TestFailed(_))]
+    ));
 }
 
 #[test]
 fn parameters_vec() {
-    assert_eq!(
-        check_vec().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Fail("input is empty".to_string()),
-            TestStatus::Success
-        ])
-    );
+    assert!(matches!(&check_vec()[..], [Err(XE::TestFailed(_)), Ok(_)]));
 }
 
 #[test]
 fn parameters_pub() {
-    assert_eq!(
-        check_pub_fn().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Success,
-            TestStatus::Success,
-            TestStatus::Fail("x less than 0".to_string())
-        ])
-    )
+    assert!(matches!(
+        &check_pub_fn()[..],
+        [Ok(_), Ok(_), Err(XE::TestFailed(_))]
+    ));
 }
 
 #[test]
 fn parameters_pub_crate() {
-    assert_eq!(
-        check_pub_crate_fn().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Success,
-            TestStatus::Success,
-            TestStatus::Fail("x less than 0".to_string())
-        ])
-    )
+    assert!(matches!(
+        &check_pub_crate_fn()[..],
+        [Ok(_), Ok(_), Err(XE::TestFailed(_))]
+    ));
 }
 
 #[test]
 fn parameters_pub_super() {
     use super_test::*;
-    assert_eq!(
-        check_pub_super_fn().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Success,
-            TestStatus::Success,
-            TestStatus::Fail("x less than 0".to_string())
-        ])
-    )
+    assert!(matches!(
+        &check_pub_super_fn()[..],
+        [Ok(_), Ok(_), Err(XE::TestFailed(_))]
+    ));
 }
 
 #[test]
 fn doc_comment() {
-    assert_eq!(
-        doc_comment_fn().get_test_result(),
-        TestResultType::Parameterized(vec![
-            TestStatus::Success,
-            TestStatus::Success,
-            TestStatus::Fail("x less than 0".to_string())
-        ])
-    )
+    assert!(matches!(
+        &doc_comment_fn()[..],
+        [Ok(_), Ok(_), Err(XE::TestFailed(_))]
+    ));
 }

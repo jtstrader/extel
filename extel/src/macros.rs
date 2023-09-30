@@ -8,62 +8,60 @@ macro_rules! __extel_init_tests {
         let mut v: Vec<$crate::Test> = Vec::new();
 
         $(let test_name: &'static str = stringify!($test);
-        let test_fn: &'static dyn $crate::TestFunction = &($test as fn() -> $crate::ExtelResult);
+        let test_fn: fn() -> Box<dyn $crate::GenericTestResult> = || Box::new($test());
         v.push($crate::Test { test_name, test_fn });)*
 
         v
     }};
 }
 
-/// A macro to create a passing ExtelResult. Under the hood this is represented as a
-/// [`TestStatus`](crate::TestStatus) wrapped as a `Single` variant on
-/// [`TestResultType`](crate::TestResultType).
+/// A macro to create a passing ExtelResult.
 ///
 /// # Example
 /// ```rust
-/// use extel::{pass, ExtelResult, TestResultType, TestStatus};
+/// use extel::{pass, ExtelResult};
 /// fn always_pass() -> ExtelResult {
 ///     pass!()
 /// }
 ///
-/// assert_eq!(
-///     always_pass().get_test_result(),
-///     TestResultType::Single(TestStatus::Success)
-/// )
+/// assert!(always_pass().is_ok())
 /// ```
 #[macro_export]
 macro_rules! pass {
     () => {
-        Box::new($crate::TestStatus::Success)
+        Ok(())
     };
 }
 
-/// A macro to create a failing ExtelResult. Under the hood this is represented as a
-/// [`TestStatus`](crate::TestStatus) wrapped as a `Single` variant on
-/// [`TestResultType`](crate::TestResultType).
+/// A macro to create a failing ExtelResult. If this macro is called the resulting error will be of
+/// type [`Error::TestFailed`](crate::errors::Error::TestFailed).
 ///
 /// # Example
 /// ```rust
-/// use extel::{fail, ExtelResult, TestResultType, TestStatus};
+/// use extel::{fail, ExtelResult, errors::Error};
 /// fn always_fail() -> ExtelResult {
 ///     let error_msg = "this is an error message!";
 ///     fail!("This test fails with this error {}", error_msg)
 /// }
 ///
-/// assert_eq!(
-///     always_fail().get_test_result(),
-///     TestResultType::Single(
-///         TestStatus::Fail(format!("This test fails with this error this is an error message!"))
-///     )
-/// )
+/// match always_fail() {
+///     Ok(_) => panic!("test did not fail!"),
+///     Err(e) => {
+///         assert!(matches!(e, Error::TestFailed(_)));
+///         assert_eq!(
+///             "This test fails with this error this is an error message!",
+///             e.to_string()
+///         );
+///     }
+/// }
 /// ```
 #[macro_export]
 macro_rules! fail {
     ($fmt:expr, $($arg:expr),*) => {
-        Box::new($crate::TestStatus::Fail(format!($fmt, $($arg),*)))
+        Err($crate::errors::Error::TestFailed(format!($fmt, $($arg),*)))
     };
 
-    ($fmt:expr) => { Box::new($crate::TestStatus::Fail(format!($fmt))) }
+    ($fmt:expr) => { Err($crate::errors::Error::TestFailed(format!($fmt))) }
 }
 
 /// Assert if a given condition is true/false. If the condition is true, call the [`pass`] macro,
@@ -145,11 +143,11 @@ macro_rules! extel_assert {
 /// let exe_path = Path::new("echo");
 ///
 /// let cmd_output = cmd!("echo -n \"hello world\"").output().unwrap();
-/// let cmd_output_fmt = cmd!(exe_path => ["-n", "hello world"]).output().unwrap();
+/// let cmd_output_path = cmd!(exe_path => ["-n", "hello world"]).output().unwrap();
 ///
 /// assert_eq!(
 ///     String::from_utf8_lossy(&cmd_output.stdout),
-///     String::from_utf8_lossy(&cmd_output_fmt.stdout)
+///     String::from_utf8_lossy(&cmd_output_path.stdout)
 /// )
 
 /// ```
@@ -480,6 +478,38 @@ mod tests {
         assert_eq!(
             output_result,
             "[extel::macros::tests::test_cmd_path::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
+        );
+    }
+
+    #[test]
+    fn test_cmd_question_mark_operator() {
+        const EXPECTED: &str = "viva las vegas";
+        fn __test_cmd() -> ExtelResult {
+            let exe_path = Path::new("echo");
+            let output = cmd!(exe_path => ["-n", EXPECTED]).output()?;
+            let string_output = String::from_utf8(output.stdout)?;
+
+            extel_assert!(
+                string_output == *EXPECTED,
+                "invalid result, expected '{}', got '{}'",
+                EXPECTED,
+                string_output
+            )
+        }
+
+        init_test_suite!(__test_cmd_suite, __test_cmd);
+        let mut output_buffer: Vec<u8> = Vec::new();
+
+        __test_cmd_suite::run(
+            TestConfig::default()
+                .output(OutputDest::Buffer(&mut output_buffer))
+                .colored(false),
+        );
+
+        let output_result = String::from_utf8_lossy(&output_buffer);
+        assert_eq!(
+            output_result,
+            "[extel::macros::tests::test_cmd_question_mark_operator::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
     }
 }
