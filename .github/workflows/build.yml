@@ -1,5 +1,5 @@
 on: push
-name: Build extel
+name: Build Extel
 jobs:
   build_extel:
     runs-on: ubuntu-latest

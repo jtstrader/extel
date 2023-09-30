@@ -1,7 +1,7 @@
 on: push
 name: Clippy Check
 jobs:
-  clippy_check:
+  extel:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -15,13 +15,20 @@ jobs:
           components: clippy
 
       - name: Check extel
-        uses: actions-rs/clippy-check@v1
+        run: cargo clippy --all-features --manifest-path ./extel/Cargo.toml -- -Dwarnings
+
+  extel_parameterized:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path ./extel/Cargo.toml
+          toolchain: stable
+          default: true
+          components: clippy
 
       - name: Check extel_parameterized
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path ./extel_parameterized/Cargo.toml
+        run: cargo clippy --all-features --manifest-path ./extel_parameterized/Cargo.toml -- -Dwarnings
