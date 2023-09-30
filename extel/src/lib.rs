@@ -80,7 +80,7 @@ pub use extel_parameterized::parameters;
 
 pub mod prelude {
     pub use crate::{
-        cmd, errors::Error, extel_assert, fail, init_test_suite, pass, ExtelResult,
+        cmd, err, errors::Error, extel_assert, fail, init_test_suite, pass, ExtelResult,
         RunnableTestSet, TestConfig,
     };
 
@@ -278,7 +278,7 @@ pub fn output_test_result<T: Write>(
     };
 
     let fmt_output = match &result.test_result {
-        TestStatus::Single(status) => match &*status {
+        TestStatus::Single(status) => match status {
             Ok(()) => format!(
                 "\tTest #{} ({}) ... {ok_color}ok{color_terminator}\n",
                 test_num, result.test_name
@@ -287,7 +287,7 @@ pub fn output_test_result<T: Write>(
                 "\tTest #{} ({}) ... {fail_color}FAILED{color_terminator}\n\t  [x] {}\n",
                 test_num,
                 result.test_name,
-                err_msg.to_string()
+                err_msg
             ),
         },
         TestStatus::Parameterized(statuses) => statuses
@@ -305,7 +305,7 @@ pub fn output_test_result<T: Write>(
                     test_num,
                     idx + 1,
                     result.test_name,
-                    err_msg.to_string()
+                    err_msg
                 ),
             })
             .collect::<String>(),

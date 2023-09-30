@@ -15,11 +15,12 @@ macro_rules! __extel_init_tests {
     }};
 }
 
-/// A macro to create a passing ExtelResult.
+/// A macro to create a passing [`ExtelResult`](crate::ExtelResult).
 ///
 /// # Example
 /// ```rust
 /// use extel::{pass, ExtelResult};
+///
 /// fn always_pass() -> ExtelResult {
 ///     pass!()
 /// }
@@ -33,12 +34,15 @@ macro_rules! pass {
     };
 }
 
-/// A macro to create a failing ExtelResult. If this macro is called the resulting error will be of
-/// type [`Error::TestFailed`](crate::errors::Error::TestFailed).
+/// A macro to create a failing [`ExtelResult`](crate::ExtelResult).
+///
+/// If this macro is called the underlying error will be of type
+/// [`Error::TestFailed`](crate::errors::Error::TestFailed).
 ///
 /// # Example
 /// ```rust
 /// use extel::{fail, ExtelResult, errors::Error};
+///
 /// fn always_fail() -> ExtelResult {
 ///     let error_msg = "this is an error message!";
 ///     fail!("This test fails with this error {}", error_msg)
@@ -58,10 +62,41 @@ macro_rules! pass {
 #[macro_export]
 macro_rules! fail {
     ($fmt:expr, $($arg:expr),*) => {
-        Err($crate::errors::Error::TestFailed(format!($fmt, $($arg),*)))
+        Result::<(), $crate::errors::Error>::Err($crate::err!($fmt, $($arg),*))
     };
 
-    ($fmt:expr) => { Err($crate::errors::Error::TestFailed(format!($fmt))) }
+    ($fmt:expr) => { Result::<(), $crate::errors::Error>::Err($crate::err!($fmt)) }
+}
+
+/// A macro to create an [`Error::TestFailed`](crate::errors::Error).
+///
+/// Unlike [`fail`], which returns a result that contains an error variant, this macro will only
+/// return the underlying error. This is particularly useful when mapping errors to test
+/// failures rather than separate errors with predefined [`Display`](std::fmt::Display)
+/// implementations.
+///
+/// # Example
+/// ```rust
+/// use extel::{prelude::*, err};
+///
+/// const EXPECTED: &str = "Hello, world!";
+///
+/// fn my_test() -> ExtelResult {
+///     let output = cmd!("echo -n \"{}\"", EXPECTED).output()?;
+///     let output_string = String::from_utf8(output.stdout)?;
+///     let code = output.status.code().ok_or(err!("could not extract code"))?;
+///     extel_assert!(output_string == *EXPECTED && code == 0)
+/// }
+///
+/// assert!(my_test().is_ok())
+/// ```
+#[macro_export]
+macro_rules! err {
+    ($fmt:expr, $($arg:expr),*) => {
+        $crate::errors::Error::TestFailed(format!($fmt, $($arg),*))
+    };
+
+    ($fmt:expr) => { $crate::errors::Error::TestFailed(format!($fmt)) }
 }
 
 /// Assert if a given condition is true/false. If the condition is true, call the [`pass`] macro,
