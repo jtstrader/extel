@@ -18,3 +18,5 @@ pub fn calculate() -> ExtelResult {
         result
     )
 }
+
+init_test_suite!(MathTestSuite, calculate, perfect_sqrt);

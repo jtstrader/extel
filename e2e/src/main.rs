@@ -1,19 +1,19 @@
 pub mod tests;
 
 use extel::prelude::*;
-use tests::{command_tests::*, math_tests::*, utf8_tests::*};
+use tests::{
+    command_tests::CommandTestSuite, math_tests::MathTestSuite,
+    unsupported_errors::UnsupportedErrorTestSuite, utf8_tests::Utf8TestSuite,
+};
 
 fn main() {
-    init_test_suite!(MathTestSuite, calculate, perfect_sqrt);
-    init_test_suite!(CommandTestSuite, echo, c_exe);
-    init_test_suite!(
-        Utf8TestSuite,
-        good_utf8,
-        bad_utf8,
-        original_handle_crash_way
-    );
+    run_tests::<MathTestSuite>();
+    run_tests::<CommandTestSuite>();
+    run_tests::<Utf8TestSuite>();
+    run_tests::<UnsupportedErrorTestSuite>();
+}
 
-    MathTestSuite::run(TestConfig::default());
-    CommandTestSuite::run(TestConfig::default());
-    Utf8TestSuite::run(TestConfig::default());
+/// Run test set with default configuration.
+fn run_tests<S: RunnableTestSet>() {
+    S::run(TestConfig::default());
 }

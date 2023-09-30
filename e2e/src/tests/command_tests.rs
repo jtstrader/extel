@@ -5,8 +5,8 @@ use extel::prelude::*;
 #[parameters("hello world", "viva las vegas", "extel's working!")]
 pub(crate) fn echo(x: &str) -> ExtelResult {
     let mut echo_cmd = cmd!("echo -n \"{}\"", x);
-    let output = echo_cmd.output().unwrap();
-    let string_output = String::from_utf8_lossy(&output.stdout);
+    let output = echo_cmd.output()?;
+    let string_output = String::from_utf8(output.stdout)?;
 
     // Verify echo works correctly.
     extel_assert!(
@@ -29,12 +29,11 @@ pub(crate) fn c_exe(x: Vec<usize>) -> ExtelResult {
     };
 
     let mut c_cmd = cmd!("./bin/test {}", args);
-    let status = c_cmd.stdout(Stdio::null()).status().unwrap();
+    let status = c_cmd.stdout(Stdio::null()).status()?;
 
     // Verify that no errors occur
-    if let Some(code) = status.code() {
-        extel_assert!(code == 0, "returned exit code: {}", code)
-    } else {
-        fail!("could not extract exit code")
-    }
+    let code = status.code().ok_or(err!("could not extract exit code"))?;
+    extel_assert!(code == 0, "returned exit code: {}", code)
 }
+
+init_test_suite!(CommandTestSuite, echo, c_exe);
