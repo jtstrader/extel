@@ -2,7 +2,7 @@
 name = "extel_parameterized"
 description = "A proc macro crate for creating parameterized tests for Extel"
 authors = ["Jacob Strader <jtstrader851@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 repository = "https://github.com/jtstrader/extel"
 license = "MIT"
