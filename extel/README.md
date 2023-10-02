@@ -52,7 +52,7 @@ fn main() {
 Extel supports error propagation through `?`. If the `From` trait for your custom error is not
 supported, you can use the `err!` macro to help map errors to a generic `TestFailed` variant.
 
-```rs
+```rust
 fn cool_err_handling() -> ExtelResult {
     let invalid_utf8 = *b"\xE0\x80\x80";
     let utf8_check = String::from_utf8(invalid_utf8.into())?;

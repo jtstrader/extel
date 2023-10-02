@@ -1,6 +1,10 @@
 # Extel Changelog
 All changes to Extel should be logged here after the release is generated and extel is published to cargo.
 
+## v0.2.1
+### Documentation
+  - Fixed extel README using `rs` instead of `rust` for code block.
+
 ## v0.2.0
 ### Features
   - cmd! macro now supports Path/PathBuf/OsStr using the cmd!(CMD => [arg1, arg2, ...]) syntax.
