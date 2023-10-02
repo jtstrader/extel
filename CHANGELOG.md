@@ -13,6 +13,9 @@ All changes to Extel should be logged here after the release is generated and ex
 ### Documentation
   - Update some docs to include features introduced in v0.1.3 and new features introduced in v0.2.0.
 
+### CI
+  - Remove clippy action and instead run clippy manually in a shell through an action.
+
 ## v0.1.3
 ### Fixes
   - Fixed extel_assert missing from extel::prelude
