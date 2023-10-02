@@ -78,6 +78,17 @@ macro_rules! fail {
 /// # Example
 /// ```rust
 /// use extel::{prelude::*, err};
+/// use thiserror::Error;
+///
+/// #[derive(Error, Debug)]
+/// enum MyCustomError {
+///     #[error("{0}")]
+///     CriticalError(String)
+/// }
+///
+/// fn blow_up() -> Result<(), MyCustomError> {
+///     Err(MyCustomError::CriticalError("UH OH!".into()))
+/// }
 ///
 /// const EXPECTED: &str = "Hello, world!";
 ///
@@ -85,10 +96,11 @@ macro_rules! fail {
 ///     let output = cmd!("echo -n \"{}\"", EXPECTED).output()?;
 ///     let output_string = String::from_utf8(output.stdout)?;
 ///     let code = output.status.code().ok_or(err!("could not extract code"))?;
+///     let err = blow_up().map_err(|e| err!("{}", e))?;
 ///     extel_assert!(output_string == *EXPECTED && code == 0)
 /// }
 ///
-/// assert!(my_test().is_ok())
+/// assert!(my_test().is_err())
 /// ```
 #[macro_export]
 macro_rules! err {

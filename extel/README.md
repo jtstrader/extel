@@ -28,8 +28,8 @@ use extel_parameterized::parameters;
 
 fn single_test() -> ExtelResult {
     let mut my_cmd = cmd!("echo -n \"hello world\"");
-    let output = my_cmd.output().unwrap();
-    let string_output = String::from_utf8_lossy(&output.stdout);
+    let output = my_cmd.output()?;
+    let string_output = String::from_utf8(output.stdout)?;
 
     extel_assert!(
         string_output == *"hello world",
@@ -47,3 +47,17 @@ fn main() {
     init_test_suite!(ExtelDemo, single_test, param_test);
     ExtelDemo::run(TestConfig::default());
 }
+```
+
+Extel supports error propagation through `?`. If the `From` trait for your custom error is not
+supported, you can use the `err!` macro to help map errors to a generic `TestFailed` variant.
+
+```rs
+fn cool_err_handling() -> ExtelResult {
+    let invalid_utf8 = *b"\xE0\x80\x80";
+    let utf8_check = String::from_utf8(invalid_utf8.into())?;
+    let io_check = std::fs::File::open("./file_not_found.txt")?;
+    let your_custom_err = get_custom_result().map_err(|e| err!("{}", e))?;
+    pass!()
+}
+```

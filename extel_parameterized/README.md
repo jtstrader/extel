@@ -9,8 +9,8 @@ use extel_parameterized::parameters;
 
 fn single_test() -> ExtelResult {
     let mut my_cmd = cmd!("echo -n \"hello world\"");
-    let output = my_cmd.output().unwrap();
-    let string_output = String::from_utf8_lossy(&output.stdout);
+    let output = my_cmd.output()?;
+    let string_output = String::from_utf8(output.stdout)?;
 
     extel_assert!(
         string_output == *"hello world",

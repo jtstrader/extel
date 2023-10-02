@@ -144,13 +144,10 @@ pub mod macros;
 ///     pass!()
 /// }
 ///
-/// assert_eq!(
-///     vec![true, false, false],
-///     vec![
-///         always_succeed().is_ok(),
-///         always_fail().is_ok(),
-///         early_fail_from_err().is_ok()
-///     ]
+/// assert!(
+///     always_succeed().is_ok() &&
+///     always_fail().is_err() &&
+///     early_fail_from_err().is_err()
 /// );
 /// ```
 pub type ExtelResult = Result<(), Error>;
@@ -285,9 +282,7 @@ pub fn output_test_result<T: Write>(
             ),
             Err(err_msg) => format!(
                 "\tTest #{} ({}) ... {fail_color}FAILED{color_terminator}\n\t  [x] {}\n",
-                test_num,
-                result.test_name,
-                err_msg
+                test_num, result.test_name, err_msg
             ),
         },
         TestStatus::Parameterized(statuses) => statuses
