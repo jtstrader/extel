@@ -258,7 +258,13 @@ macro_rules! cmd {
         cmd!(fmt)
     }};
 
-    ($cmd:expr => $args:expr) => { ::std::process::Command::new($cmd).args($args) }
+    /* Arms to handle empty expression blocks */
+    ($cmd:expr => []) => { ::std::process::Command::new($cmd) };
+    ($cmd:expr => {}) => { ::std::process::Command::new($cmd) };
+    ($cmd:expr => ()) => { ::std::process::Command::new($cmd) };
+    /* End empty expression blocks */
+
+    ($cmd:expr => $args:expr) => { ::std::process::Command::new($cmd).args($args) };
 }
 
 /// The test suite initializer that constructs test suits based on the provided name (first
@@ -343,7 +349,7 @@ macro_rules! init_test_suite {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{error::Error, path::Path};
 
     use crate::{ExtelResult, OutputDest, RunnableTestSet, TestConfig};
 
@@ -558,5 +564,15 @@ mod tests {
             output_result,
             "[extel::macros::tests::test_cmd_question_mark_operator::__test_cmd_suite]\n\tTest #1 (__test_cmd) ... ok\n"
         );
+    }
+
+    #[test]
+    fn test_cmd_empty_arg() -> Result<(), Box<dyn Error>> {
+        let bracket_output = String::from_utf8(cmd!("echo" => []).output()?.stdout)?;
+        let brace_output = String::from_utf8(cmd!("echo" => {}).output()?.stdout)?;
+        let paren_output = String::from_utf8(cmd!("echo" => ()).output()?.stdout)?;
+        Ok(assert!(
+            bracket_output == brace_output && brace_output == paren_output
+        ))
     }
 }
