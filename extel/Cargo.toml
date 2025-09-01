@@ -9,12 +9,11 @@ license = "MIT"
 keywords = ["testing", "test", "parameterized"]
 categories = ["development-tools", "development-tools::testing"]
 
-[package.metadata.docs.rs]
-features = ["parameterized"]
-
 [features]
 parameterized = []
 
 [dependencies]
-extel_parameterized = "0.1.1"
+extel-core = { path = "../extel-core" }
+extel-test-macros = { path = "../extel-macros/extel-test" }
+extel-category-macros = { path = "../extel-macros/extel-category" }
 thiserror = "1.0.49"
