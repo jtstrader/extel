@@ -1,0 +1,54 @@
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+
+env:
+  PROJECT: ${{ inputs.project }}
+
+name: Check Project
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    name: ${{ inputs.project }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Rust Installation
+        run: |
+          rustup default stable
+          cargo --version
+
+      - name: Install cargo-make
+        run: cargo install --no-default-features --force cargo-make
+
+      - name: Check Formatting
+        id: fmt
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT format-check
+
+        # Warnings will be handled in the "Lint" step.
+      - name: Compile - Check
+        id: check
+        if: ${{ steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure' }}
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT check-ignore-warnings
+
+      - name: Compile - Build
+        id: build
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT build
+
+      - name: Check Documentation
+        id: doc
+        if: ${{ steps.check.outcome == 'success' }}
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT doc-deny-warnings
+
+      - name: Lint
+        id: clippy
+        if: ${{ steps.check.outcome == 'success' }}
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT clippy-deny-warnings
+
+      - name: Test
+        id: test
+        if: ${{ steps.build.outcome == 'success' }}
+        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT test

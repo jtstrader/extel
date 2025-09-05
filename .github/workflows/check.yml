@@ -1,0 +1,34 @@
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "**/*.rs"
+      - "**/*.toml"
+      - ".github/workflows/**.yml"
+  pull_request:
+    paths:
+      - "**/*.rs"
+      - "**/*.toml"
+      - ".github/workflows/**.yml"
+
+name: Check Workspace
+jobs:
+  # Load the list of available workspace projects using `cargo metadata`.
+  prepare:
+    runs-on: ubuntu-latest
+    name: Load Workspace Projects
+    outputs:
+      projects: ${{ steps.load.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: load
+        run: echo "projects=cargo metadata --no-deps --format-version=1 | jq '.packages[].name' | jq -sc ." >> $GITHUB_OUTPUT
+
+  check:
+    needs: prepare
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.prepare.outputs.projects) }}
+    uses: ./.github/workflows/_check_reuse.yml
+    with:
+      project: ${{ matrix.project }}
