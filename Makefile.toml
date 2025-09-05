@@ -1,0 +1,142 @@
+[config]
+skip_core_tasks = true
+skip_git_env_info = true
+skip_rust_env_info = true
+skip_crate_env_info = true
+
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+RUSTFLAGS = { unset = true }
+RUSTDOCFLAGS = { unset = true }
+FLAG = { unset = true }                     # For setting new RUSTFLAGS/RUSTDOCFLAGS
+
+[tasks.default]
+alias = "dev-flow"
+
+
+######################## HOOKS ########################
+
+[tasks.unset-rustflags]
+category = "xtl-hooks"
+env = { "RUSTFLAGS" = { unset = true } }
+
+[tasks.set-rustflags]
+category = "xtl-hooks"
+env = { "RUSTFLAGS" = "${FLAG}" }
+
+[tasks.unset-rustdocflags]
+category = "xtl-hooks"
+env = { "RUSTDOCFLAGS" = { unset = true } }
+
+[tasks.set-rustdocflags]
+category = "xtl-hooks"
+env = { "RUSTDOCFLAGS" = "${FLAG}" }
+
+######################## COMMANDS ########################
+
+[tasks.format-check]
+description = "Check formatting in xtl."
+category = "xtl-commands"
+command = "cargo"
+args = ["fmt", "--all", "--check"]
+
+[tasks.format]
+description = "Format xtl."
+category = "xtl-commands"
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.check]
+description = "Check xtl."
+category = "xtl-commands"
+command = "cargo"
+args = ["check", "--all-features", "--all-targets"]
+
+[tasks.check-ignore-warnings]
+env = { "FLAG" = "-Awarnings" }
+description = "Check xtl and ignore warnings."
+category = "xtl-commands"
+run_task = { name = ["set-rustflags", "check", "unset-rustflags"] }
+
+[tasks.clippy]
+description = "Lint xtl with clippy."
+category = "xtl-commands"
+command = "cargo"
+args = ["clippy", "--all-features"]
+
+[tasks.clippy-deny-warnings]
+env = { "FLAG" = "-Dwarnings" }
+description = "Lint xtl with clippy. Fails immediately on first warning."
+category = "xtl-commands"
+run_task = { name = ["set-rustflags", "clippy", "unset-rustflags"] }
+
+[tasks.doc]
+description = "Create xtl documentation. Open by passing --open when running this task."
+category = "xtl-commands"
+command = "cargo"
+args = [
+    "doc",
+    "--no-deps",
+    "--document-private-items",
+    "--all-features",
+    "${@}",                     # Allows passing --open
+]
+
+[tasks.doc-deny-warnings]
+env = { "FLAG" = "-Dwarnings" }
+description = "Create xtl documentation. Open by passing --open when running this task. Will fail on warnings."
+category = "xtl-commands"
+run_task = { name = ["set-rustdocflags", "doc", "unset-rustdocflags"] }
+
+[tasks.build]
+description = "Build xtl with the dev profile."
+category = "xtl-commands"
+command = "cargo"
+args = ["build", "--all-features", "--all-targets"]
+
+[tasks.build-release]
+description = "Build xtl with the release profile."
+category = "xtl-commands"
+command = "cargo"
+args = ["build", "--release", "--all-features", "--all-targets"]
+
+[tasks.test]
+description = "Test xtl with the dev profile."
+category = "xtl-commands"
+command = "cargo"
+args = ["test", "--all-features"]
+dependencies = ["build"]
+
+[tasks.test-release]
+description = "Test xtl with the release profile."
+category = "xtl-commands"
+command = "cargo"
+args = ["test", "--release", "--all-features"]
+dependencies = ["build-release"]
+
+
+######################## FLOWS ########################
+
+[tasks.dev-flow]
+description = "Format, check, lint, document, and build xtl with the dev profile."
+category = "xtl-flows"
+dependencies = [
+    "format-check",
+    "check-ignore-warnings",
+    "clippy",                # clippy will cover warnings that check emits.
+    "doc",
+    "build",
+    "test",
+]
+
+[tasks.release-flow]
+description = "Format, check, lint, document, and build xtl with the release profile. Deny all warnings."
+category = "xtl-flows"
+dependencies = [
+    "format-check",
+    "check",
+    "clippy-deny-warnings",
+    "doc-deny-warnings",
+    "build-release",
+    "test-release",
+]
