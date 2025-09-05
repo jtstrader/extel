@@ -1,9 +1,9 @@
 [package]
-name = "extel-test-macros"
-description = "The Extel test macro"
+name = "xtl-category-macros"
+description = "The xtl category macros"
 version = "0.1.0"
 edition = "2024"
-repository = "https://github.com/jtstrader/extel"
+repository = "https://github.com/jtstrader/xtl"
 license = "MIT"
 keywords = ["testing", "test"]
 categories = ["development-tools", "development-tools::testing"]
@@ -16,6 +16,6 @@ proc-macro = true
 quote = "1.0.40"
 syn = "2.0.106"
 proc-macro2 = "1.0.101"
-extel-core = { path = "../../extel-core" }
+xtl-core = { path = "../../xtl-core" }
 darling = "0.21.3"
 

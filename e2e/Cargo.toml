@@ -1,12 +1,10 @@
 [package]
 name = "e2e"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-extel = { path = "../extel" }
-extel-core = { path = "../extel-core" }
-extel-test-macros = { path = "../extel-macros/extel-test" }
-extel-category-macros = { path = "../extel-macros/extel-category" }
+xtl = { path = "../xtl" }

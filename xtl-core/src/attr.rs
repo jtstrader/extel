@@ -7,25 +7,25 @@ use syn::{parse::Parse, Meta, MetaList, Path};
 use crate::Metadata;
 
 #[derive(Debug)]
-pub struct AttributeList(pub(crate) Vec<ExtelAttribute>);
+pub struct AttributeList(pub(crate) Vec<XtlAttribute>);
 
 impl AttributeList {
-    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<ExtelAttribute>> {
-        let extel_metadata_idxs = self
+    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<XtlAttribute>> {
+        let xtl_metadata_idxs = self
             .0
             .iter()
             .enumerate()
-            .filter(|(_, a)| a.is_extel_metadata)
+            .filter(|(_, a)| a.is_xtl_metadata)
             .map(|(k, _)| k)
             .collect::<Vec<_>>();
-        eprintln!("GOT METADATA IDXS: {:?}", extel_metadata_idxs);
+        eprintln!("GOT METADATA IDXS: {:?}", xtl_metadata_idxs);
 
-        match extel_metadata_idxs.len() {
+        match xtl_metadata_idxs.len() {
             0 => None,
-            1 => Some(Ok(self.0.remove(extel_metadata_idxs[0]))),
+            1 => Some(Ok(self.0.remove(xtl_metadata_idxs[0]))),
             _ => Some(Err(syn::Error::new(
                 Span::call_site(),
-                "multiple extel metadata declarations",
+                "multiple xtl metadata declarations",
             )
             .into())),
         }
@@ -33,13 +33,13 @@ impl AttributeList {
 }
 
 #[derive(Debug)]
-pub struct ExtelAttribute {
+pub struct XtlAttribute {
     pub name: String,
-    pub is_extel_metadata: bool,
+    pub is_xtl_metadata: bool,
     pub attr_meta: Meta,
 }
 
-impl From<Metadata> for ExtelAttribute {
+impl From<Metadata> for XtlAttribute {
     fn from(value: Metadata) -> Self {
         syn::parse2(value.into_token_stream()).unwrap()
     }
@@ -51,7 +51,7 @@ impl Parse for AttributeList {
 
         while !input.is_empty() {
             eprintln!("{:?}", attrs);
-            match input.parse::<ExtelAttribute>() {
+            match input.parse::<XtlAttribute>() {
                 Ok(attr) => attrs.push(attr),
                 Err(_) => return Ok(AttributeList(attrs)),
             }
@@ -68,7 +68,7 @@ impl quote::ToTokens for AttributeList {
     }
 }
 
-impl Parse for ExtelAttribute {
+impl Parse for XtlAttribute {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
         if !lookahead.peek(syn::Token![#]) {
@@ -81,17 +81,17 @@ impl Parse for ExtelAttribute {
 
         let meta = attr.parse::<Meta>()?;
         let meta_name = get_full_path_name_for_attr(&meta);
-        let is_extel_metadata = meta_name == crate::CORE_TEST_MACRO_NAME;
+        let is_xtl_metadata = meta_name == crate::CORE_TEST_MACRO_NAME;
 
-        Ok(ExtelAttribute {
+        Ok(XtlAttribute {
             name: meta_name,
             attr_meta: meta,
-            is_extel_metadata,
+            is_xtl_metadata,
         })
     }
 }
 
-impl quote::ToTokens for ExtelAttribute {
+impl quote::ToTokens for XtlAttribute {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let pound = Punct::new('#', proc_macro2::Spacing::Alone);
         let meta = &self.attr_meta;
@@ -136,7 +136,7 @@ mod tests {
             )]
         "#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -145,7 +145,7 @@ mod tests {
 
         let attr = attr_res.unwrap();
         assert_eq!(attr.name, "example");
-        assert!(!attr.is_extel_metadata);
+        assert!(!attr.is_xtl_metadata);
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
             )]
         "#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -168,7 +168,7 @@ mod tests {
 
         let attr = attr_res.unwrap();
         assert_eq!(attr.name, "::example");
-        assert!(!attr.is_extel_metadata);
+        assert!(!attr.is_xtl_metadata);
     }
 
     #[test]
@@ -182,7 +182,7 @@ mod tests {
             )]
         "#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -191,11 +191,11 @@ mod tests {
 
         let attr = attr_res.unwrap();
         assert_eq!(attr.name, "example::macros::tag1");
-        assert!(!attr.is_extel_metadata);
+        assert!(!attr.is_xtl_metadata);
     }
 
     #[test]
-    fn attribute_parse_extel_metadata() {
+    fn attribute_parse_xtl_metadata() {
         let src = format!(
             r#"
             #[{}(
@@ -208,7 +208,7 @@ mod tests {
             crate::CORE_TEST_MACRO_NAME
         );
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(&src);
+        let attr_res = syn::parse_str::<XtlAttribute>(&src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -217,7 +217,7 @@ mod tests {
 
         let attr = attr_res.unwrap();
         assert_eq!(attr.name, crate::CORE_TEST_MACRO_NAME);
-        assert!(attr.is_extel_metadata);
+        assert!(attr.is_xtl_metadata);
     }
 
     #[test]
@@ -231,7 +231,7 @@ mod tests {
             )]
         "#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -240,7 +240,7 @@ mod tests {
 
         let attr = attr_res.unwrap();
         assert_eq!(attr.name, "::example::macros::tag1");
-        assert!(!attr.is_extel_metadata);
+        assert!(!attr.is_xtl_metadata);
     }
 
     #[test]
@@ -253,7 +253,7 @@ mod tests {
                 val3 = 3,
                 optional_val = None
             )]"#;
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -279,7 +279,7 @@ mod tests {
                 val3 = 3,
                 optional_val = None
             )]"#;
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -306,7 +306,7 @@ mod tests {
                 optional_val = None
             )]"#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -333,7 +333,7 @@ mod tests {
                 optional_val = None
             )]"#;
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(src);
+        let attr_res = syn::parse_str::<XtlAttribute>(src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",
@@ -350,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn attribute_to_tokens_extel_metadata() {
+    fn attribute_to_tokens_xtl_metadata() {
         // Load attribute first.
         let src = format!(
             r#"
@@ -363,7 +363,7 @@ mod tests {
             crate::CORE_TEST_MACRO_NAME
         );
 
-        let attr_res = syn::parse_str::<ExtelAttribute>(&src);
+        let attr_res = syn::parse_str::<XtlAttribute>(&src);
         assert!(
             attr_res.is_ok(),
             "failed with syn::Error: {}",

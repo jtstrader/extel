@@ -1,16 +1,16 @@
-use extel_core::{ExtelFunction, Metadata, tag, update_meta};
+use xtl_core::{XtlFunction, Metadata, tag, update_meta};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned};
 
-/// Extel test.
+/// Xtl test.
 #[proc_macro_attribute]
 pub fn test_enable(attr: TokenStream, function: TokenStream) -> TokenStream {
     eprintln!("{:?}", attr);
 
     eprintln!("ATTEMPTING TO PARSE");
-    let mut function = parse_macro_input!(function as ExtelFunction);
+    let mut function = parse_macro_input!(function as XtlFunction);
     eprintln!("PARSE COMPLETE");
 
     eprintln!("ATTEMPTING TO UPDATE");
@@ -26,9 +26,9 @@ pub fn test_enable(attr: TokenStream, function: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn __extel_test_metadata(attr: TokenStream, function: TokenStream) -> TokenStream {
+pub fn __xtl_test_metadata(attr: TokenStream, function: TokenStream) -> TokenStream {
     eprintln!(
-        "======================================= EXTEL TEST ======================================="
+        "======================================= XTL TEST ======================================="
     );
 
     eprintln!("attr: {:?}", attr);

@@ -1,6 +1,6 @@
-use extel_macros::*;
+use xtl_macros::*;
 
-// #[extel::__extel_test_metadata__(
+// #[xtl::__xtl_test_metadata__(
 //     test = true,
 //     category = "unit",
 //     priority = "critical",

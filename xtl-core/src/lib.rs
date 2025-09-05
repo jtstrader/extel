@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse::Parse, spanned::Spanned, Meta, Path};
 
-use crate::attr::{AttributeList, ExtelAttribute};
+use crate::attr::{AttributeList, XtlAttribute};
 
 pub mod attr;
 pub mod tag;
@@ -36,16 +36,16 @@ macro_rules! update_meta {
     }};
 }
 
-pub(crate) const CORE_TEST_MACRO_NAME: &str = "::extel_test_macros::__extel_test_metadata";
+pub(crate) const CORE_TEST_MACRO_NAME: &str = "::xtl_test_macros::__xtl_test_metadata";
 
 #[derive(Debug)]
-pub struct ExtelFunction {
+pub struct XtlFunction {
     pub metadata: AttributeList,
     pub func: syn::ItemFn,
 }
 
-impl ExtelFunction {
-    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<ExtelAttribute>> {
+impl XtlFunction {
+    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<XtlAttribute>> {
         self.metadata.pop_metadata_attr()
     }
 
@@ -55,16 +55,16 @@ impl ExtelFunction {
     }
 }
 
-impl Parse for ExtelFunction {
+impl Parse for XtlFunction {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let metadata = input.parse::<AttributeList>()?;
         let func = input.parse::<syn::ItemFn>()?;
 
-        Ok(ExtelFunction { metadata, func })
+        Ok(XtlFunction { metadata, func })
     }
 }
 
-impl quote::ToTokens for ExtelFunction {
+impl quote::ToTokens for XtlFunction {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let metadata = &self.metadata;
         let func = &self.func;
@@ -79,27 +79,27 @@ impl quote::ToTokens for ExtelFunction {
 #[derive(Default, Debug, FromMeta)]
 #[darling(derive_syn_parse)]
 pub struct Metadata {
-    /// If `extel::test` has been enabled.
+    /// If `xtl::test` has been enabled.
     pub test: Option<bool>,
 
-    /// `extel::category` setting.
+    /// `xtl::category` setting.
     pub category: Option<tag::Category>,
 
-    /// `extel::priority` setting.
+    /// `xtl::priority` setting.
     pub priority: Option<tag::Priority>,
 
-    /// `extel::ignore` setting and a reason if provided.
+    /// `xtl::ignore` setting and a reason if provided.
     pub ignore: Option<Option<String>>,
 }
 
-impl TryFrom<ExtelAttribute> for Metadata {
+impl TryFrom<XtlAttribute> for Metadata {
     type Error = syn::Error;
 
-    fn try_from(value: ExtelAttribute) -> Result<Self, Self::Error> {
-        if !value.is_extel_metadata {
+    fn try_from(value: XtlAttribute) -> Result<Self, Self::Error> {
+        if !value.is_xtl_metadata {
             return Err(syn::Error::new(
                 value.span(),
-                "attribute is not extel metadata",
+                "attribute is not xtl metadata",
             ));
         }
 
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_all_fields() {
         let expected = quote! {
-            #[::extel_test_macros::__extel_test_metadata(
+            #[::xtl_test_macros::__xtl_test_metadata(
                 test = true,
                 category = "unit",
                 priority = "high",
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_default_fields() {
         let expected = quote! {
-            #[::extel_test_macros::__extel_test_metadata(test = false)]
+            #[::xtl_test_macros::__xtl_test_metadata(test = false)]
             fn foo() {}
         };
 
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_ignore_no_reason() {
         let expected = quote! {
-            #[::extel_test_macros::__extel_test_metadata(
+            #[::xtl_test_macros::__xtl_test_metadata(
                 test = true,
                 category = "unit",
                 priority = "high",
