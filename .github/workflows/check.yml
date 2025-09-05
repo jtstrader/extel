@@ -28,7 +28,7 @@ jobs:
             cargo metadata --no-deps --format-version=1 \
               | jq -c '[.packages[].manifest_path
                 | split("/")
-                | .[index("xtl") + 1:]
+                | .[index("xtl") + 2:]
                 | join("/")
                 | sub("/[^/]+$"; "")
               ]'
