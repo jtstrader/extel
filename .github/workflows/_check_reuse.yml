@@ -1,20 +1,21 @@
 on:
   workflow_call:
     inputs:
-      project:
+      project-working-directory:
         required: true
         type: string
 
 env:
-  PROJECT: ${{ inputs.project }}
+  PROJECT: ${{ inputs.project-working-directory }}
 
-name: Check Project
 jobs:
   check:
     runs-on: ubuntu-latest
-    name: ${{ inputs.project }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set Makefile Path
+        run: echo "MAKEFILE_PATH=${{ github.workspace }}/Makefile.toml" >> $GITHUB_ENV
 
       - name: Verify Rust Installation
         run: |
@@ -26,29 +27,29 @@ jobs:
 
       - name: Check Formatting
         id: fmt
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT format-check
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT format-check
 
         # Warnings will be handled in the "Lint" step.
       - name: Compile - Check
         id: check
         if: ${{ steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure' }}
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT check-ignore-warnings
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT check-ignore-warnings
 
       - name: Compile - Build
         id: build
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT build
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT build
 
       - name: Check Documentation
         id: doc
         if: ${{ steps.check.outcome == 'success' }}
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT doc-deny-warnings
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT doc-deny-warnings
 
       - name: Lint
         id: clippy
         if: ${{ steps.check.outcome == 'success' }}
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT clippy-deny-warnings
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT clippy-deny-warnings
 
       - name: Test
         id: test
         if: ${{ steps.build.outcome == 'success' }}
-        run: cargo-make --manifest=${{ github.workspace }} --cwd=$PROJECT test
+        run: cargo-make --makefile=$MAKEFILE_PATH --cwd=$PROJECT test

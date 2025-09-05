@@ -18,17 +18,26 @@ jobs:
     runs-on: ubuntu-latest
     name: Load Workspace Projects
     outputs:
-      projects: ${{ steps.load.outputs.projects }}
+      manifest-paths: ${{ steps.load.outputs.paths }}
     steps:
       - uses: actions/checkout@v4
       - id: load
-        run: echo "projects=cargo metadata --no-deps --format-version=1 | jq '.packages[].name' | jq -sc ." >> $GITHUB_OUTPUT
-
+        run: |
+          echo paths=$(
+            cargo metadata --no-deps --format-version=1 \
+              | jq -c '[.packages[].manifest_path
+                | split("/")
+                | .[index("xtl") + 1:]
+                | join("/")
+                | sub("/[^/]+$"; "")
+              ]'
+          ) >> $GITHUB_OUTPUT
   check:
     needs: prepare
     strategy:
       matrix:
-        project: ${{ fromJson(needs.prepare.outputs.projects) }}
+        manifest_path: ${{ fromJson(needs.prepare.outputs.manifest-paths) }}
+    name: ${{ matrix.manifest_path }}
     uses: ./.github/workflows/_check_reuse.yml
     with:
-      project: ${{ matrix.project }}
+      project-working-directory: ${{ matrix.manifest_path }}
