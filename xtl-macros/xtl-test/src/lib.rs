@@ -1,8 +1,7 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
-use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned};
-use xtl_core::{Metadata, XtlFunction, tag, update_meta};
+use quote::quote;
+use syn::parse_macro_input;
+use xtl_core::{Metadata, XtlFunction, update_meta};
 
 /// Xtl test.
 #[proc_macro_attribute]
@@ -21,7 +20,7 @@ pub fn test_enable(attr: TokenStream, function: TokenStream) -> TokenStream {
     eprintln!("UPDATE COMPLETE");
 
     let res: TokenStream = quote! { #function }.into();
-    eprintln!("{}", res.to_string());
+    eprintln!("{}", res);
     res
 }
 

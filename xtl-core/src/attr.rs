@@ -26,8 +26,7 @@ impl AttributeList {
             _ => Some(Err(syn::Error::new(
                 Span::call_site(),
                 "multiple xtl metadata declarations",
-            )
-            .into())),
+            ))),
         }
     }
 }
