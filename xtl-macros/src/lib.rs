@@ -1,3 +1,7 @@
+//! The official set of proc macros used by xtl to generate test metadata.
+
+#![deny(missing_docs)]
+
 use proc_macro::TokenStream;
 
 macro_rules! xtl_attribute {
@@ -14,13 +18,13 @@ mod category;
 mod test;
 
 xtl_attribute! {
-    /// Register a function as an xtl test.
-    crate::test::test_enable => test_enable
+    #[doc(hidden)]
+    crate::test::__xtl_test_metadata => __xtl_test_metadata
 }
 
 xtl_attribute! {
-    #[doc(hidden)]
-    crate::test::__xtl_test_metadata => __xtl_test_metadata
+    /// Register a function as an xtl test.
+    crate::test::test_enable => test_enable
 }
 
 xtl_attribute! {
