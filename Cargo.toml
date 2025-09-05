@@ -1,4 +1,4 @@
 [workspace]
 resolver = "3"
-members = ["extel-core", "extel-macros"]
+members = ["extel", "extel-core", "extel-macros/extel-test", "extel-macros/extel-category", "e2e"]
 exclude = ["scratch"]
