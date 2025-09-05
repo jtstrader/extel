@@ -1,7 +1,7 @@
 [package]
 name = "xtl"
 description = "A library for organizing and running tests in Rust projects"
-version = "0.1.0"
+version = "0.2.2"
 edition = "2024"
 repository = "https://github.com/jtstrader/xtl"
 license = "MIT"
@@ -10,5 +10,4 @@ categories = ["development-tools", "development-tools::testing"]
 
 [dependencies]
 xtl-core = { path = "../xtl-core" }
-xtl-test-macros = { path = "../xtl-macros/xtl-test" }
-xtl-category-macros = { path = "../xtl-macros/xtl-category" }
+xtl-macros = { path = "../xtl-macros" }

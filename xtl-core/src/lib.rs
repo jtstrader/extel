@@ -28,15 +28,13 @@ macro_rules! update_meta {
             },
             None => Metadata::default(),
         };
-        eprintln!("SUCCESSFULLY GOT METADATA OBJ: {:#?}", metadata);
-        eprintln!("APPLYING UPDATER");
+
         updater(&mut metadata);
-        eprintln!("INTERNAL UPDATE SUCCESSFUL");
         $function.push_metadata(metadata);
     }};
 }
 
-pub(crate) const CORE_TEST_MACRO_NAME: &str = "::xtl_test_macros::__xtl_test_metadata";
+pub(crate) const CORE_TEST_MACRO_NAME: &str = "::xtl_macros::__xtl_test_metadata";
 
 #[derive(Debug)]
 pub struct XtlFunction {
@@ -50,7 +48,6 @@ impl XtlFunction {
     }
 
     pub fn push_metadata(&mut self, metadata: Metadata) {
-        eprintln!("PUSHING METADATA: {:#?}", metadata);
         self.metadata.0.push(metadata.into());
     }
 }
@@ -159,7 +156,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_all_fields() {
         let expected = quote! {
-            #[::xtl_test_macros::__xtl_test_metadata(
+            #[::xtl_macros::__xtl_test_metadata(
                 test = true,
                 category = "unit",
                 priority = "high",
@@ -186,7 +183,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_default_fields() {
         let expected = quote! {
-            #[::xtl_test_macros::__xtl_test_metadata(test = false)]
+            #[::xtl_macros::__xtl_test_metadata(test = false)]
             fn foo() {}
         };
 
@@ -203,7 +200,7 @@ mod tests {
     #[test]
     fn metadata_to_tokens_ignore_no_reason() {
         let expected = quote! {
-            #[::xtl_test_macros::__xtl_test_metadata(
+            #[::xtl_macros::__xtl_test_metadata(
                 test = true,
                 category = "unit",
                 priority = "high",

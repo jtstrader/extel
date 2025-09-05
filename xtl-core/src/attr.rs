@@ -18,7 +18,6 @@ impl AttributeList {
             .filter(|(_, a)| a.is_xtl_metadata)
             .map(|(k, _)| k)
             .collect::<Vec<_>>();
-        eprintln!("GOT METADATA IDXS: {:?}", xtl_metadata_idxs);
 
         match xtl_metadata_idxs.len() {
             0 => None,
@@ -49,7 +48,6 @@ impl Parse for AttributeList {
         let mut attrs = Vec::new();
 
         while !input.is_empty() {
-            eprintln!("{:?}", attrs);
             match input.parse::<XtlAttribute>() {
                 Ok(attr) => attrs.push(attr),
                 Err(_) => return Ok(AttributeList(attrs)),

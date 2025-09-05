@@ -1,6 +1,6 @@
 [package]
-name = "xtl-test-macros"
-description = "The xtl test macro"
+name = "xtl-macros"
+description = "The xtl proc macros used for metadata generation"
 version = "0.1.0"
 edition = "2024"
 repository = "https://github.com/jtstrader/xtl"
@@ -16,6 +16,5 @@ proc-macro = true
 quote = "1.0.40"
 syn = "2.0.106"
 proc-macro2 = "1.0.101"
-xtl-core = { path = "../../xtl-core" }
+xtl-core = { path = "../xtl-core" }
 darling = "0.21.3"
-
