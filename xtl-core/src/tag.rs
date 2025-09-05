@@ -1,7 +1,7 @@
 //! Types used for test tagging.
 
 use darling::FromMeta;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 #[derive(Debug, FromMeta)]
 #[darling(derive_syn_parse)]

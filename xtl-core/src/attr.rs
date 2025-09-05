@@ -1,8 +1,8 @@
 //! Attribute parsing logic.
 
 use proc_macro2::{Punct, Span};
-use quote::{quote, ToTokens};
-use syn::{parse::Parse, Meta, MetaList, Path};
+use quote::{ToTokens, quote};
+use syn::{Meta, MetaList, Path, parse::Parse};
 
 use crate::Metadata;
 

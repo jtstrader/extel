@@ -1,7 +1,7 @@
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse::Parse, spanned::Spanned, Meta, Path};
+use syn::{Meta, Path, parse::Parse, spanned::Spanned};
 
 use crate::attr::{AttributeList, XtlAttribute};
 

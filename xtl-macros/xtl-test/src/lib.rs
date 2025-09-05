@@ -1,8 +1,8 @@
-use xtl_core::{XtlFunction, Metadata, tag, update_meta};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned};
+use xtl_core::{Metadata, XtlFunction, tag, update_meta};
 
 /// Xtl test.
 #[proc_macro_attribute]
