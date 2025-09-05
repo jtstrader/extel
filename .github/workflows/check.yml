@@ -21,7 +21,8 @@ jobs:
       manifest-paths: ${{ steps.load.outputs.paths }}
     steps:
       - uses: actions/checkout@v4
-      - id: load
+      - name: Load Manifest Paths
+        id: load
         run: |
           echo paths=$(
             cargo metadata --no-deps --format-version=1 \
