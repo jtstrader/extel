@@ -1,16 +1,46 @@
-//! Attribute parsing logic.
+//! Attribute parsing and manipulation for XTL functions.
+//!
+//! This module provides the core functionality for parsing Rust attributes from
+//! function definitions and identifying which one contains XTL metadata.
+//!
+//! # Parsing Process
+//!
+//! The parsing process works by:
+//!   1. Extracting all attributes from a function definition.
+//!   2. Parsing each attribute to determine its full path name.
+//!   3. Identifying which of those attributes (if any) is the XTL metadata attribute.
+//!
+//! # Example
+//!
+//! ```
+//! use syn::parse_str;
+//! use xtl_core::attr::XtlAttribute;
+//!
+//! let attr_str = r#"#[xtl::category::unit]"#;
+//! let attr: XtlAttribute = parse_str(attr_str).expect("valid attribute");
+//!
+//! if attr.is_xtl_metadata {
+//!     // Process XTL metadata
+//! }
+//! ```
 
-use proc_macro2::{Punct, Span};
+use proc_macro2::Punct;
 use quote::{ToTokens, quote};
 use syn::{Meta, MetaList, Path, parse::Parse};
 
 use crate::Metadata;
 
+/// Collection of XTL attributes parsed from an [`XtlFunction`](crate::XtlFunction).
 #[derive(Debug)]
 pub struct AttributeList(pub(crate) Vec<XtlAttribute>);
 
 impl AttributeList {
-    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<XtlAttribute>> {
+    /// Removes and returns the first XTL metadata attribute from the list.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there are multiple XTL metadata attributes in the list.
+    pub fn pop_metadata_attr(&mut self) -> Option<XtlAttribute> {
         let xtl_metadata_idxs = self
             .0
             .iter()
@@ -21,19 +51,22 @@ impl AttributeList {
 
         match xtl_metadata_idxs.len() {
             0 => None,
-            1 => Some(Ok(self.0.remove(xtl_metadata_idxs[0]))),
-            _ => Some(Err(syn::Error::new(
-                Span::call_site(),
-                "multiple xtl metadata declarations",
-            ))),
+            1 => Some(self.0.remove(xtl_metadata_idxs[0])),
+            _ => unreachable!(),
         }
     }
 }
 
+/// A parsed attribute.
+///
+/// Contains a flag to determine if the attribute is XTL metadata.
 #[derive(Debug)]
 pub struct XtlAttribute {
+    /// Full path name of the attribute.
     pub name: String,
+    /// Whether this attribute contains XTL metadata.
     pub is_xtl_metadata: bool,
+    /// Parsed metadata content.
     pub attr_meta: Meta,
 }
 

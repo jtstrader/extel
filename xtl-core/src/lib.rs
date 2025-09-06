@@ -1,3 +1,62 @@
+//! Core functionality for XTL, the eXtended Testing Library.
+//!
+//! This crate provides the foundational types and macros for parsing, processing,
+//! and transforming Rust functions with XTL test metadata. It serves as the backbone
+//! for proc macros that enhance test functions with categorization, prioritization,
+//! and other metadata-driven features.
+//!
+//! # Key Components
+//!
+//! The main idea of XTL is to keep the majority of changes out of the proc macros and within the core
+//! implementation. In this way our proc macros become more like a "glue" layer that can be used solely
+//! to modify the metadata of a function. The actual usage of the metadata is left up to downstream test
+//! runners.
+//!
+//! The most important components when working with XTL proc macros are:
+//!
+//! - [`XtlFunction`]: Represents a valid Rust function with associated attributes (e.g. `#[xtl::test]`)
+//! - [`Metadata`]: Configuration struct containing test metadata like its category and priority
+//! - [`update_meta!`]: Macro for safely updating metadata within procedural macros
+//!
+//! # Usage
+//!
+//! This crate is primarily intended for use within procedural macro implementations.
+//! The typical workflow involves parsing a function with XTL attributes, extracting
+//! and modifying the metadata, then regenerating the function with updated attributes.
+//!
+//! You can add new features by modifying the metadata struct and its [`ToTokens`](quote::ToTokens)
+//! implementation. The parse impl is already handled via [`darling`](https://docs.rs/darling/latest/darling/).
+//! The [`update_meta!`](crate::update_meta) macro will automatically handle updating the metadata and
+//! modifying the [`XtlFunction`] for you.
+//!
+//! ```ignore
+//! /***** in xtl-core *****/
+//! pub struct Metadata {
+//!     /* pre-existing fields */
+//!     pub new_feature_metadata: Option<String>,
+//! }
+//!
+//! /***** in xtl-macros *****/
+//! use proc_macro::TokenStream;
+//! use syn::parse_macro_input;
+//! use quote::quote;
+//!
+//! use xtl_core::{XtlFunction, Metadata, update_meta, tag};
+//!
+//! #[proc_macro_attribute]
+//! pub fn my_test_macro(attr: TokenStream, function: TokenStream) -> TokenStream {
+//!     let mut function = parse_macro_input!(function as XtlFunction);
+//!     
+//!     update_meta!(&mut function, |meta| {
+//!         meta.new_feature_metadata = Some("insert-data-here");
+//!     });
+//!     
+//!     quote! { #function }.into()
+//! }
+//! ```
+
+#![deny(missing_docs)]
+
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -8,20 +67,52 @@ use crate::attr::{AttributeList, XtlAttribute};
 pub mod attr;
 pub mod tag;
 
+/// Obtain a [`Metadata`] attribute from a given [`XtlFunction`], update the metadata
+/// obtained from it, and then modify the provided function with the newly modified metadata.
+///
+/// # Usage
+///
+/// This macro should only be used in proc macro functions that return the [`proc_macro::TokenStream`](https://doc.rust-lang.org/proc_macro/struct.TokenStream.html)
+/// type. This macro will return early if a parsing error occurs, which is emitted as tokens back
+/// to the compiler.
+///
+/// ```ignore
+/// use proc_macro::TokenStream;
+/// use syn::parse_macro_input;
+/// use quote::quote;
+///
+/// use xtl_core::{XtlFunction, Metadata, update_meta, tag};
+///
+/// #[proc_macro_attribute]
+/// pub fn my_test_macro(attr: TokenStream, function: TokenStream) -> TokenStream {
+///     let mut function = parse_macro_input!(function as XtlFunction);
+///
+///     // Updates the metadata. Note that this modifies
+///     // the function in place so it can be directly
+///     // written back out to the token stream.
+///     update_meta!(&mut function, |meta| {
+///         meta.test = Some(true);
+///         meta.category = Some(tag::Category::Unit);
+///     });
+///
+///     quote! { #function }.into()
+/// }
+/// ```
+///
+/// # Returns
+///
+/// If a parsing failure occurs, this macro short circuits and returns a compiler error.
 #[macro_export]
 macro_rules! update_meta {
-    ($function:ident, $updater:expr) => {{
-        // Type constraints enforce that $updater some function that can update metadata.
+    ($function:expr, $updater:expr) => {{
+        // Constraints:
+        //   - $function must be a mutable reference to an XtlFunction
+        //   - $updater must be a function that takes a mutable reference to a Metadata
         let updater: &dyn Fn(&mut Metadata) = &$updater;
         let metadata_attr = $function.pop_metadata_attr();
         let mut metadata = match metadata_attr {
-            Some(res) => match res {
-                Ok(data) => match Metadata::try_from(data) {
-                    Ok(meta) => meta,
-                    Err(e) => {
-                        return e.into_compile_error().into();
-                    }
-                },
+            Some(attr) => match Metadata::try_from(attr) {
+                Ok(meta) => meta,
                 Err(e) => {
                     return e.into_compile_error().into();
                 }
@@ -36,17 +127,26 @@ macro_rules! update_meta {
 
 pub(crate) const CORE_TEST_MACRO_NAME: &str = "::xtl_macros::__xtl_test_metadata";
 
+/// A function with a set of attributes.
+///
+/// It is assumed that at least one attribute is an xtl attribute.
 #[derive(Debug)]
 pub struct XtlFunction {
-    pub metadata: AttributeList,
-    pub func: syn::ItemFn,
+    metadata: AttributeList,
+    func: syn::ItemFn,
 }
 
 impl XtlFunction {
-    pub fn pop_metadata_attr(&mut self) -> Option<syn::Result<XtlAttribute>> {
+    /// Pop the metadata attribute from the function.
+    pub fn pop_metadata_attr(&mut self) -> Option<XtlAttribute> {
         self.metadata.pop_metadata_attr()
     }
 
+    /// Push a metadata attribute to the function.
+    ///
+    /// The metadata attribute is put on the end of the attribute list
+    /// to ensure that it will be triggered later in the macro expansion
+    /// process.
     pub fn push_metadata(&mut self, metadata: Metadata) {
         self.metadata.0.push(metadata.into());
     }
@@ -73,6 +173,7 @@ impl quote::ToTokens for XtlFunction {
     }
 }
 
+/// Metadata for XTL test functions.
 #[derive(Default, Debug, FromMeta)]
 #[darling(derive_syn_parse)]
 pub struct Metadata {

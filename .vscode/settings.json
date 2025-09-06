@@ -1,0 +1,16 @@
+{
+  "material-icon-theme.folders.associations": {
+    "xtl-core": "core",
+    "xtl-macros": "pipe"
+  },
+  "material-icon-theme.folders.customClones": [
+    {
+      "name": "xtl",
+      "base": "folder",
+      "color": "light-green-500",
+      "lightColor": "light-green-700",
+      "folderNames": ["xtl"],
+      "rootFolderNames": ["xtl"]
+    }
+  ]
+}
