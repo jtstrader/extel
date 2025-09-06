@@ -109,7 +109,8 @@ macro_rules! update_meta {
         //   - $function must be a mutable reference to an XtlFunction
         //   - $updater must be a function that takes a mutable reference to a Metadata
         let updater: &dyn Fn(&mut Metadata) = &$updater;
-        let metadata_attr = $function.pop_metadata_attr();
+        let func: &mut XtlFunction = $function;
+        let metadata_attr = func.pop_metadata_attr();
         let mut metadata = match metadata_attr {
             Some(attr) => match Metadata::try_from(attr) {
                 Ok(meta) => meta,
@@ -121,7 +122,7 @@ macro_rules! update_meta {
         };
 
         updater(&mut metadata);
-        $function.push_metadata(metadata);
+        func.push_metadata(metadata);
     }};
 }
 

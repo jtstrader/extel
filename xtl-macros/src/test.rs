@@ -6,7 +6,7 @@ use xtl_core::{Metadata, XtlFunction, update_meta};
 /// Mark as an xtl test.
 pub(crate) fn test_enable(_attr: TokenStream, function: TokenStream) -> TokenStream {
     let mut function = parse_macro_input!(function as XtlFunction);
-    update_meta!(function, |meta| {
+    update_meta!(&mut function, |meta| {
         meta.test = Some(true);
     });
     quote! { #function }.into()
